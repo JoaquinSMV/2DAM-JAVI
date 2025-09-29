@@ -5,6 +5,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 
+import java.io.File;
+
 @SpringBootApplication
 @Slf4j
 public class AadApplication implements CommandLineRunner {
@@ -15,6 +17,11 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("Aplicación iniciada con Lombok y Spring Boot");
+        File fichero = new File("ejemplo.txt");
+        if (fichero.createNewFile()) {
+            log.info("Fichero creado: " + fichero.getName());
+        } else {
+            log.info("El fichero ya existe.");  //¿cómo se dónde está?
+        }
     }
 }
