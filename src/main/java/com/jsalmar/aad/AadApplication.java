@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,20 +21,16 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Path ruta = Paths.get("ejemploNIO.txt");
+        Path ruta = Paths.get("alumnos.txt");
 
-        if (!Files.exists(ruta)) {
-            Files.createFile(ruta);
-            log.info("Fichero creado con NIO.2");
-        }
+        // Escribir en el fichero
+        Files.writeString(ruta, "ID,Nombre\n1,Ana\n2,Juan", StandardCharsets.UTF_8);
 
-        // Escribir texto en el fichero
-        Files.write(ruta, "Hola mundo desde NIO.2".getBytes());
-
-        // Leer todo el contenido
-        String contenido = Files.readString(ruta);
-        log.info("Contenido: " + contenido);
+        // Leer del fichero
+        String contenido = Files.readString(ruta, StandardCharsets.UTF_8);
+        System.out.println("Contenido del fichero:");
+        System.out.println(contenido);
     }
-}
+    }
 
 
