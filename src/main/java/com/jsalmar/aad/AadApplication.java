@@ -28,8 +28,8 @@ public class AadApplication implements CommandLineRunner {
 
         // Leer del fichero
         String contenido = Files.readString(ruta, StandardCharsets.UTF_8);
-        System.out.println("Contenido del fichero:");
-        System.out.println(contenido);
+        log.info("Contenido del fichero:");
+        log.info(contenido);
     }
     }
 
