@@ -6,6 +6,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @SpringBootApplication
 @Slf4j
@@ -17,11 +20,20 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        File fichero = new File("ejemplo.txt");
-        if (fichero.createNewFile()) {
-            log.info("Fichero creado: " + fichero.getName());
-        } else {
-            log.info("El fichero ya existe.");  //¿cómo se dónde está?
+        Path ruta = Paths.get("ejemploNIO.txt");
+
+        if (!Files.exists(ruta)) {
+            Files.createFile(ruta);
+            log.info("Fichero creado con NIO.2");
         }
+
+        // Escribir texto en el fichero
+        Files.write(ruta, "Hola mundo desde NIO.2".getBytes());
+
+        // Leer todo el contenido
+        String contenido = Files.readString(ruta);
+        log.info("Contenido: " + contenido);
+    }
+}
     }
 }
