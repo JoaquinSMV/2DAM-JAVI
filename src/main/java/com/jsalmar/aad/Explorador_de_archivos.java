@@ -35,6 +35,20 @@ public class Explorador_de_archivos {
 
             //Aqui va a ir un switch
 
+            switch (opciones) {
+                case 1:
+                    crear(directorio);
+                    break;
+                case 2:
+                    borrarF();
+                    break;
+                case 3:
+                    moverF();
+                    break;
+                case 4:
+                    System.out.println("Saliendo de la app...");
+                    break;
+            }
 
         } while (opciones != 4);
     }
@@ -44,7 +58,7 @@ public class Explorador_de_archivos {
         {
             File[] ficheros = directorio.listFiles();
 
-            if (ficheros != null || ficheros.length == 0)
+            if (ficheros == null || ficheros.length == 0)
             {
                 System.out.println("Ficheros vacios...");
                 return;
