@@ -2,6 +2,8 @@ package com.jsalmar.aad;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.Scanner;
 
@@ -33,7 +35,6 @@ public class Explorador_de_archivos {
             opciones = sc.nextInt();
             sc.nextLine();
 
-            //Aqui va a ir un switch
 
             switch (opciones) {
                 case 1:
@@ -112,20 +113,22 @@ public class Explorador_de_archivos {
             File origen_f = new File(origen);
             File destino_f = new File(destino);
 
-            if (origen_f.exists() && origen_f.isFile())
+            try
             {
-                if (destino_f.exists() && destino_f.isFile())
+                if (Files.isDirectory(destino_f.toPath()))
                 {
-                    if (origen_f.renameTo(destino_f))
-                    {
-                        System.out.println("Fichero " + origen_f.getAbsolutePath() + " movido a " + destino_f.getAbsolutePath());
-                    }
-                    else
-                    {
-                        System.out.println("No se pudo mover el fichero " + origen_f.getAbsolutePath() + " a " + destino_f.getAbsolutePath());
-                    }
+                    destino_f = destino_f.toPath().resolve(origen_f.getName()).toFile();
                 }
+
+                Files.move(origen_f.toPath(),destino_f.toPath() , StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Fichero " + origen_f.getAbsolutePath() + " movido a " + destino_f.getAbsolutePath());
+
             }
+            catch (Exception e)
+            {
+                System.out.println("No se pudo mover el fichero " + origen_f.getAbsolutePath() + " porque se produjo un error: " + e.getMessage());
+            }
+
         }
 
         private static void borrarF ()
@@ -151,9 +154,5 @@ public class Explorador_de_archivos {
                 System.out.println("El fichero " + fichero.getAbsolutePath() + " no existe lo siento...");
             }
         }
-
-
-
-
 }
 
