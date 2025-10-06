@@ -21,18 +21,16 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        File f = new File("ejemplo.txt");
+        File carpeta = new File(".");
+        File[] archivos = carpeta.listFiles();
 
-        if (f.exists()) {
-            System.out.println("El fichero existe.");
-            if (f.isFile()) {
-                System.out.println("Es un fichero.");
-                System.out.println("Tamaño: " + f.length() + " bytes");
-            } else if (f.isDirectory()) {
-                System.out.println("Es un directorio.");
+        for (File archivo : archivos) {
+            if (archivo.isDirectory()) {
+                System.out.println("[DIR] " + archivo.getName());
+            } else {
+                System.out.println("[FILE] " + archivo.getName() +
+                        " (" + archivo.length() + " bytes)");
             }
-        } else {
-            System.out.println("El fichero no existe.");
         }
     }
 }
