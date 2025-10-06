@@ -20,17 +20,16 @@ public class AadApplication implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) {
-        File carpeta = new File(".");
-        File[] archivos = carpeta.listFiles();
+    public void run(String... args) throws IOException {
+        File carpeta = new File("datos");
+        if (!carpeta.exists()) {
+            carpeta.mkdir();
+            System.out.println("Carpeta creada.");
+        }
 
-        for (File archivo : archivos) {
-            if (archivo.isDirectory()) {
-                System.out.println("[DIR] " + archivo.getName());
-            } else {
-                System.out.println("[FILE] " + archivo.getName() +
-                        " (" + archivo.length() + " bytes)");
-            }
+        File fichero = new File(carpeta, "alumnos.txt");
+        if (fichero.createNewFile()) {
+            System.out.println("Fichero creado en: " + fichero.getAbsolutePath());
         }
     }
 }
