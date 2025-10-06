@@ -21,39 +21,19 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        try {
-            BufferedImage img = ImageIO.read(new File("C:\\Users\\joaqu\\Documents\\Workspace\\AADD1\\src\\main\\resources\\Gonza.jpg"));
+        File f = new File("ejemplo.txt");
 
-            // Escalar la imagen para que quepa en consola
-            int newWidth = 80; // caracteres de ancho
-            int newHeight = (img.getHeight() * newWidth) / img.getWidth();
-            BufferedImage scaled = new BufferedImage(newWidth, newHeight,
-                    BufferedImage.TYPE_INT_RGB);
-            scaled.getGraphics().drawImage(img, 0, 0, newWidth, newHeight, null);
-
-
-
-            for (int y = 0; y < newHeight - 1; y += 2) { // procesamos de dos en dos
-                for (int x = 0; x < newWidth; x++) {
-                    // Color del pixel de arriba
-                    Color top = new Color(scaled.getRGB(x, y));
-                    // Color del pixel de abajo
-                    Color bottom = new Color(scaled.getRGB(x, y + 1));
-
-                    // ANSI: color de texto = top, fondo = bottom
-                    System.out.print(
-                            "\u001B[38;2;" + top.getRed() + ";" + top.getGreen() + ";" + top.getBlue() +
-                                    "m" +
-                                    "\u001B[48;2;" + bottom.getRed() + ";" + bottom.getGreen() + ";" +
-                                    bottom.getBlue() + "m" +
-                                    "▀" // bloque superior coloreado
-                    );
-                }
-                System.out.print("\u001B[0m\n"); // reset al final de la línea
+        if (f.exists()) {
+            System.out.println("El fichero existe.");
+            if (f.isFile()) {
+                System.out.println("Es un fichero.");
+                System.out.println("Tamaño: " + f.length() + " bytes");
+            } else if (f.isDirectory()) {
+                System.out.println("Es un directorio.");
             }
-
-        } catch (IOException e) {
-            System.out.println("Error al cargar la imagen: " + e.getMessage());
+        } else {
+            System.out.println("El fichero no existe.");
         }
     }
 }
+
