@@ -1,22 +1,33 @@
 package Actividad_1_2;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.InputMismatchException;
 
-public class Main {
+@SpringBootApplication
+public class Main implements CommandLineRunner {
     private static final String FICHERO = "alumnos.dat";
-    private static GestorAlumnos gestor;
+    private static GestorAlumnado gestor; //
     private static Scanner sc;
 
+
     public static void main(String[] args) {
-        gestor = new GestorAlumnos(FICHERO);
+        SpringApplication.run(Main.class, args);
+    }
+
+
+    public void run (String...args) throws IOException {
+        gestor = new GestorAlumnado(FICHERO);
         sc = new Scanner(System.in);
 
-        System.out.println("==============================================");
+        System.out.println("------------------------------------------------");
         System.out.println("   GESTION DE NOTAS DE ALUMNOS");
         System.out.println("   Acceso Secuencial y Aleatorio");
-        System.out.println("==============================================\n");
+        System.out.println("------------------------------------------------");
 
         boolean salir = false;
 
@@ -61,20 +72,19 @@ public class Main {
 
     private static void mostrarMenu() {
         System.out.println("----------------------------------------------");
-        System.out.println("              MENU PRINCIPAL");
+        System.out.println("              MENU PRINCIPAL                  ");
         System.out.println("----------------------------------------------");
-        System.out.println(" 1. Insertar nuevo alumno");
-        System.out.println(" 2. Consultar alumno por posicion");
-        System.out.println(" 3. Modificar nota de un alumno");
-        System.out.println(" 4. Listar todos los alumnos");
-        System.out.println(" 5. Informacion del fichero");
-        System.out.println(" 6. Eliminar fichero de datos");
-        System.out.println(" 0. Salir");
+        System.out.println(" 1- Insertar nuevo alumno");
+        System.out.println(" 2- Consultar alumno por posicion");
+        System.out.println(" 3- Modificar nota de un alumno");
+        System.out.println(" 4- Listar todos los alumnos");
+        System.out.println(" 5- Informacion del fichero");
+        System.out.println(" 6- Eliminar fichero de datos");
+        System.out.println(" 0- Salir");
         System.out.println("----------------------------------------------");
-        System.out.print("Eliga una opcion: ");
+        System.out.print("Elige una opcion: ");
     }
 
-    // Lee la opcion del menu y controla que sea un numero
     private static int leerOpcion() {
         try {
             int op = sc.nextInt();
@@ -86,19 +96,18 @@ public class Main {
         }
     }
 
-    // Pide los datos y añade un alumno al final del fichero
     private static void insertarAlumno() {
-        System.out.println("\n--- INSERTAR NUEVO ALUMNO ---");
+        System.out.println("\n---- INSERTAR NUEVO ALUMNO ----");
 
         try {
             System.out.print("ID: ");
             int id = sc.nextInt();
             sc.nextLine();
 
-            System.out.print("Nombre (max 20 caracteres): ");
+            System.out.print("Nombre (maximo 20 caracteres): ");
             String nombre = sc.nextLine();
 
-            System.out.print("Nota (0-10): ");
+            System.out.print("Nota entre 0-10: ");
             double nota = sc.nextDouble();
             sc.nextLine();
 
@@ -110,12 +119,11 @@ public class Main {
             Alumno alumno = new Alumno(id, nombre, nota);
             gestor.insertarAlumno(alumno);
         } catch (InputMismatchException e) {
-            System.out.println("Error: entrada no valida");
+            System.out.println("Error: Datos no bien introducidos");
             sc.nextLine();
         }
     }
 
-    // Busca un alumno directamente por su posicion en el fichero
     private static void consultarAlumno() {
         System.out.println("\n--- CONSULTAR ALUMNO POR POSICION ---");
 
@@ -137,20 +145,18 @@ public class Main {
                 return;
             }
 
-            gestor.consultarAlumnoPorPosicion(pos);
+            gestor.consultarF(pos); //
         } catch (InputMismatchException e) {
             System.out.println("Error: debe introducir un numero");
             sc.nextLine();
         }
     }
 
-    // Cambia la nota de un alumno sin reescribir el fivhero entero
     private static void modificarNota() {
-        System.out.println("\n--- MODIFICAR NOTA DE ALUMNO ---");
+        System.out.println("---- MODIFICAR NOTA DE ALUMNO ----");
 
         int total = gestor.obtenerNumeroAlumnos();
 
-        //En caso de que no haya alumnos, no se puede modificar nada
         if (total == 0) {
             System.out.println("No hay alumnos registrados.");
             return;
@@ -168,12 +174,11 @@ public class Main {
                 return;
             }
 
-            // Muestra el alumno actual
             System.out.println("\nAlumno actual:");
-            Alumno alumno = gestor.consultarAlumnoPorPosicion(pos);
+            Alumno alumno = gestor.consultarF(pos);
             if (alumno == null) return;
 
-            System.out.print("\nNueva nota (0-10): ");
+            System.out.print("\nNueva nota entre 0 y 10: ");
             double nuevaNota = sc.nextDouble();
             sc.nextLine();
 
@@ -185,7 +190,7 @@ public class Main {
             gestor.modificarNota(pos, nuevaNota);
 
         } catch (InputMismatchException e) {
-            System.out.println("Error: entrada no valida");
+            System.out.println("Error: vuelve a introducir los datos");
             sc.nextLine();
         }
     }
@@ -194,7 +199,6 @@ public class Main {
         gestor.listarAlumnos();
     }
 
-    // Muestra informacion tecnica sobre como funciona el fichero
     private static void mostrarInfo() {
         System.out.println("\n--- INFORMACION DEL FICHERO ---");
         System.out.println("Nombre: " + FICHERO);
@@ -216,11 +220,11 @@ public class Main {
 
     private static void eliminarFichero() {
         System.out.println("\n--- ELIMINAR FICHERO ---");
-        System.out.print("Seguro que quieres eliminar el fichero? (S/N): ");
+        System.out.print("Seguro que quieres eliminar el fichero? (S / N): ");
         String conf = sc.nextLine();
 
         if (conf.equalsIgnoreCase("S")) {
-            if (gestor.eliminarFichero()) {
+            if (gestor.borrarFichero()) {
                 System.out.println("Fichero eliminado");
             } else {
                 System.out.println("No se pudo eliminar");

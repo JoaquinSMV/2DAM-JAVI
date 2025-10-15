@@ -7,7 +7,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.Scanner;
 
-public class Explorador_de_archivos {
+public class ExploradorDeArchivos {
  private static Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -22,7 +22,7 @@ public class Explorador_de_archivos {
             return;
         }
 
-        Mostrar_Ficheros(directorio);
+        MostrarFicheros(directorio);
 
         int opciones;
         do {
@@ -55,7 +55,7 @@ public class Explorador_de_archivos {
     }
 
 
-        private static void Mostrar_Ficheros (File directorio)
+        private static void MostrarFicheros (File directorio)
         {
             File[] ficheros = directorio.listFiles();
 
