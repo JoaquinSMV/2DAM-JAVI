@@ -7,6 +7,16 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Scanner;
 
+/*
+ * Clase GestorAlumnado
+ * Esta clase se encarga de todo lo relacionado con el fichero de alumnos.
+ * Aquí se leen y escriben los alumnos en el fichero binario,
+ * Se puede insertar, consultar, modificar notas, listar todos
+ * y borrar el fichero si hace falta.
+ * Todo con RandomAccessFile para que los registros sean de tamaño fijo.
+ */
+
+
 public class GestorAlumnado {
 
     private static Scanner sc = new Scanner(System.in);

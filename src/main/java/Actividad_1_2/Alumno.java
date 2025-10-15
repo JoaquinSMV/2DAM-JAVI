@@ -1,7 +1,12 @@
 package Actividad_1_2;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
+/*
+ * Clase Alumno
+ * Representa a un alumno con id, nombre y nota.
+ * El nombre siempre ocupa 20 caracteres para que el registro sea fijo.
+ * Sirve para guardar los alumnos en el fichero binario y manejar sus datos.
+ */
+
 
 // Clase que representa a un alumno con id, nombre y nota
 public class Alumno {

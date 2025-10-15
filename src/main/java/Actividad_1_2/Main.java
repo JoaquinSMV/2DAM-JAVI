@@ -8,6 +8,14 @@ import java.io.IOException;
 import java.util.Scanner;
 import java.util.InputMismatchException;
 
+/*
+ * Clase Main
+ * Aquí se muestra el menú, se leen las opciones del usuario
+ * Tambien se llama a GestorAlumnado para hacer las operaciones con los alumnos.
+ * También permite ver la informacion del fichero o borrarlo.
+ */
+
+
 @SpringBootApplication
 public class Main implements CommandLineRunner {
     private static final String FICHERO = "alumnos.dat";
