@@ -210,11 +210,6 @@ public class Main implements CommandLineRunner {
         int total = gestor.obtenerNumeroAlumnos();
         System.out.println("\nAlumnos registrados: " + total);
         System.out.println("Tamaño total: " + (total * Alumno.TAMANO_REGISTRO) + " bytes");
-
-        System.out.println("\n--- Ventajas del acceso aleatorio ---");
-        System.out.println("- Se puede ir directamente a cualquier alumno");
-        System.out.println("- No hace falta leer todo el fichero");
-        System.out.println("- Se puede modificar solo un campo");
         System.out.println("\nFormula: posicion_bytes = numero_alumno * " + Alumno.TAMANO_REGISTRO);
     }
 

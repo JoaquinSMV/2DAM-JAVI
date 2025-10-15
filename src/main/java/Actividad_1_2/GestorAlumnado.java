@@ -1,14 +1,11 @@
 package Actividad_1_2;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Scanner;
-import org.springframework.boot.CommandLineRunner;
 
 public class GestorAlumnado {
 
