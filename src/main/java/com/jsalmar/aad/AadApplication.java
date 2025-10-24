@@ -5,6 +5,18 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/*
+ * Clase AadApplication
+ * --------------------
+ * Clase principal de la aplicación Spring Boot.
+ *
+ * Implementa CommandLineRunner para ejecutar código
+ * inmediatamente después de iniciar la aplicación.
+ *
+ * En este caso, crea un objeto ConversionArchivos y
+ * llama a su método menu() para iniciar la conversión.
+ */
+
 @SpringBootApplication
 @Slf4j
 public class AadApplication implements CommandLineRunner {
