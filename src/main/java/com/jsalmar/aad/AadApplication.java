@@ -27,8 +27,6 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        ConversionArchivos conversionArchivos = new ConversionArchivos();
-        log.info("Se esta ejecutando Conversion de Archivos :)");
-        conversionArchivos.menu();
+        Logs manager = new Logs();
     }
 }
