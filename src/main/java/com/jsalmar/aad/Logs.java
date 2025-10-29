@@ -1,5 +1,7 @@
 package com.jsalmar.aad;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -7,16 +9,25 @@ import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 
 /**
- * Gestor simple de logs para la práctica Act_1_5.
- * <p>
+ * Esto es un gestor de logs para la práctica Act_1_5.
+ * Esto es para tener una guia tm para mi:
+ * Intentar poner la mayoria de las cosas en ingles
  * Funcionalidades:
- * - Añadir evento al fichero app.log con marca temporal [YYYY-MM-DD HH:mm:ss]
- * - Filtrar eventos por fecha (YYYY-MM-DD)
- * - Configurar codificación (UTF-8 por defecto, opción ISO-8859-1)
- * <p>
- * Requiere JDK 8+.
+ * Añadir evento al fichero app.log con marca temporal [Año-Mes-Dia Hora:minuto:segundos]
+ * Filtrar eventos por fecha (Años-Mes-Dias)
+ * Configurar codificación (UTF-8 por defecto y si puedo tambien una opción ISO-8859-1)
+ * Hay un requerimiento:
+ * JDK 8+.
  */
 
+/**
+ * Webgrafia
+ * https://www.geeksforgeeks.org/java/file-getparentfile-method-in-java-with-examples/
+ * https://docs.spring.io/spring-framework/docs/current/javadoc-api//org/springframework/web/filter/CharacterEncodingFilter.html
+ * Muchas cosas buscadas la daba la ia del copilot pero no las usaba , las interpretaba como un ejemplo
+ */
+
+@Slf4j
 public class Logs {
 
     public static class LogManager {
@@ -37,48 +48,49 @@ public class Logs {
             ensureLogFile();
         }
 
-        /**
-         * Aplicación de consola simple con menú.
-         */
+
+        //Aplicación de consola simple con menú.
+
+
         public static void main(String[] args) {
             LogManager manager = new LogManager();
             Scanner scanner = new Scanner(System.in, "UTF-8");
 
-            System.out.println("=== Gestor de Logs (Act_1_5) ===");
+            log.info("     Gestor de Logs     ");
             boolean running = true;
 
             while (running) {
-                System.out.println();
-                System.out.println("Codificación actual: " + manager.encoding);
-                System.out.println("1) Añadir evento");
-                System.out.println("2) Filtrar eventos por fecha (Año-Mes-Dia)");
-                System.out.println("3) Cambiar codificación (UTF-8 / ISO-8859-1)");
-                System.out.println("4) Mostrar todo el log");
-                System.out.println("5) Salir");
-                System.out.print("Elige una opción: ");
+
+                log.info("Codificación actual: " + manager.encoding);
+                log.info("1) Añadir evento");
+                log.info("2) Filtrar eventos por fecha (Año-Mes-Dia)");
+                log.info("3) Cambiar codificación (UTF-8 / ISO-8859-1)");
+                log.info("4) Mostrar todo el log");
+                log.info("5) Salir");
+                log.info("Elige una opción: ");
 
                 String opt = scanner.nextLine().trim();
                 try {
                     switch (opt) {
                         case "1":
-                            System.out.print("Mensaje: ");
+                            log.info("Escriba el mensaje: ");
                             String msg = scanner.nextLine();
                             manager.addEvent(msg);
-                            System.out.println("Evento añadido...");
+                            log.info("Evento añadido...");
                             break;
                         case "2":
-                            System.out.print("Fecha (Año-Mes-Dia): ");
-                            String date = scanner.nextLine().trim();
+                            log.info("Fecha (Año-Mes-Dia): ");
+                            String date = scanner.nextLine().trim(); // trim() para quitar espacios al inicio y al final
                             manager.filterByDate(date);
                             break;
                         case "3":
-                            System.out.print("Nueva codificación (UTF-8 o ISO-8859-1): ");
+                            log.info("Nueva codificación (UTF-8 o ISO-8859-1): ");
                             String enc = scanner.nextLine().trim();
                             if (!enc.equalsIgnoreCase("UTF-8") && !enc.equalsIgnoreCase("ISO-8859-1")) {
-                                System.out.println("Codificación no soportada... Manteniendo: " + manager.encoding);
+                                log.info("Codificacion no soportada...  seguiremos con el: " + manager.encoding); // .encoding se refiere a la configuración de codificación de caracteres que utiliza la JVM (Java Virtual Machine) para interpretar y manejar texto , lo he sacado de internet esto...
                             } else {
                                 manager.setEncoding(enc);
-                                System.out.println("Codificación cambiada a " + manager.encoding);
+                                log.info("Codificacion cambiada a " + manager.encoding); //Añado que el .encoding es para el tema del UTF-8 y el ISO-8859-1 por eso lo pongo
                             }
                             break;
                         case "4":
@@ -88,47 +100,48 @@ public class Logs {
                             running = false;
                             break;
                         default:
-                            System.out.println("Opción no válida.");
+                            log.info("Opción no válida... ");
                     }
                 } catch (DateTimeParseException dtp) {
-                    System.out.println("Formato de fecha inválido. Use YYYY-MM-DD.");
+                    log.info("El formato que usas no sirve. Usa este para que funcione Año-Mes-Dia.");
                 } catch (IOException ioe) {
-                    System.out.println("Error de E/S: " + ioe.getMessage());
+                    log.info("Error de E/S (Recurso no existe): " + ioe.getMessage());
                 } catch (Exception ex) {
-                    System.out.println("Error inesperado: " + ex.getMessage());
+                    log.info("UPS que ha pasado , error: " + ex.getMessage());
                 }
             }
 
-            System.out.println("Saliendo. ¡Hasta luego!");
+            log.info("Saliendo la de aplicacion , chao...");
             scanner.close();
         }
 
-        /**
-         * Asegura la existencia del fichero de log (crea si no existe).
-         */
+
+        // Asegura la existencia del fichero de log (crea si no existe).
+
         private void ensureLogFile() {
             try {
-                File parent = logFile.getAbsoluteFile().getParentFile();
-                if (parent != null && !parent.exists()) {
+                File parent = logFile.getAbsoluteFile().getParentFile(); // Esta función devuelve el archivo primario del objeto de archivo dado. La función devuelve un objeto File que contiene el archivo Parent del objeto de archivo dado. Si la ruta abstracta no contiene ningún archivo primario, se devuelve un valor nulo.
+                if (parent != null && !parent.exists()) { // Si el archivo primario no existe lo crea
                     if (!parent.mkdirs()) {
-                        System.err.println("No se pudieron crear directorios: " + parent.getAbsolutePath());
+                        log.error("No se pudieron crear directorios: " + parent.getAbsolutePath());
                     }
                 }
-                if (!logFile.exists()) {
+                if (!logFile.exists()) { // Si el archivo existe da error porque ya existe
                     if (!logFile.createNewFile()) {
-                        System.err.println("No se pudo crear el fichero de log: " + logFile.getAbsolutePath());
+                        log.error("No se pudo crear el fichero de log: " + logFile.getAbsolutePath());
                     }
                 }
             } catch (IOException e) {
-                System.err.println("Error al asegurar fichero de log: " + e.getMessage());
+                log.error("Error al asegurar fichero de log: " + e.getMessage());
             }
         }
 
         /**
-         * Cambia la codificación que se usará para leer/escribir el log.
-         *
-         * @param encoding nombre de la codificación (por ejemplo "UTF-8" o "ISO-8859-1")
+         * Cambia la codificación que se usará para leer o escribir el log.
+         * <p>
+         * Un encoding nombre de la codificación para el tema del "UTF-8" o "ISO-8859-1"
          */
+
         public void setEncoding(String encoding) {
             if (encoding == null) return;
             this.encoding = encoding;
@@ -136,10 +149,12 @@ public class Logs {
 
         /**
          * Añade un evento al fichero con la marca temporal actual.
+         * <p>
+         * Mensaje de texto del evento
+         * Tiene que lanzar un IOException en caso de que haya error de E/S
          *
-         * @param message texto del evento
-         * @throws IOException si hay error de E/S
          */
+
         public void addEvent(String message) throws IOException {
             if (message == null) message = "";
             String timestamp = LocalDateTime.now().format(TIMESTAMP_FMT);
@@ -157,15 +172,16 @@ public class Logs {
 
         /**
          * Muestra por consola todas las líneas del log que correspondan a la fecha indicada.
-         *
-         * @param dateStr fecha en formato YYYY-MM-DD
-         * @throws IOException            si hay error de lectura
-         * @throws DateTimeParseException si el formato de fecha no es válido
+         * <p>
+         * Parametros : dateStr fecha en formato Año-Mes-Dia
+         * Lanzar un IOException por si hay error de lectura
+         * Y hay tm que lanzar un DateTimeParseException si el formato de fecha no es válido
          */
+
         public void filterByDate(String dateStr) throws IOException, DateTimeParseException {
             // validar formato de fecha
             DATE_ONLY_FMT.parse(dateStr); // lanza DateTimeParseException si no es válido
-            String prefix = "[" + dateStr; // las líneas empiezan con [YYYY-MM-DD
+            String prefix = "[" + dateStr; // las líneas empiezan con "[" y despues Año-Mes-Dia ...
 
             try (FileInputStream fis = new FileInputStream(logFile);
                  InputStreamReader isr = new InputStreamReader(fis, encoding);
@@ -175,21 +191,22 @@ public class Logs {
                 boolean any = false;
                 while ((line = br.readLine()) != null) {
                     if (line.startsWith(prefix)) {
-                        System.out.println(line);
+                        log.info(line);
                         any = true;
                     }
                 }
                 if (!any) {
-                    System.out.println("No se encontraron eventos para la fecha " + dateStr);
+                    log.info("No se encontraron eventos para la fecha " + dateStr);
                 }
             }
         }
 
         /**
-         * Muestra todo el log por consola (uso de ayuda / debug).
-         *
-         * @throws IOException si hay error de lectura
+         * Muestra todo el log por consola
+         * <p>
+         * Que lance un IOException por si hay error de lectura
          */
+
         public void showAll() throws IOException {
             try (FileInputStream fis = new FileInputStream(logFile);
                  InputStreamReader isr = new InputStreamReader(fis, encoding);
@@ -197,7 +214,7 @@ public class Logs {
 
                 String line;
                 while ((line = br.readLine()) != null) {
-                    System.out.println(line);
+                    log.info(line);
                 }
             }
         }
