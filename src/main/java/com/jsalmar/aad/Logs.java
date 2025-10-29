@@ -24,7 +24,9 @@ import java.util.Scanner;
  * Webgrafia
  * https://www.geeksforgeeks.org/java/file-getparentfile-method-in-java-with-examples/
  * https://docs.spring.io/spring-framework/docs/current/javadoc-api//org/springframework/web/filter/CharacterEncodingFilter.html
+ * https://docs.oracle.com/javase/8/docs/api/java/util/logging/LogManager.html
  * Muchas cosas buscadas la daba la ia del copilot pero no las usaba , las interpretaba como un ejemplo
+ * Otras a sido con ayuda externa (Mi hermano que es ingeniero informatico y me ha ayudado con las dudas vamos)
  */
 
 @Slf4j
