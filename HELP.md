@@ -1,6 +1,8 @@
 # Resumen del modelo relacional:
 
-    descripción de las tablas  
+    Tabla alumno --> Almacena datos de los alumnos. (nombre, email)...
+    Tabla modulo --> Contiene digamos los modulos de los alumnos (nombre, horas)...
+    Tabla matricula --> En este caso, contiene la matricula de los alumnos. (fecha, id_alumno, id_modulo)...
 
 # Diagrama relacional simple en texto:
 
