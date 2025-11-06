@@ -1,6 +1,6 @@
 package com.jsalmar.aad.repository;
 
-import com.fencgut961.aad.model.Student;
+import com.jsalmar.aad.model.Student;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 

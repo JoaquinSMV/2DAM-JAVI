@@ -1,9 +1,9 @@
 package com.jsalmar.aad;
 
-import com.fencgut961.aad.application.StudentService;
-import com.fencgut961.aad.model.Module;
-import com.fencgut961.aad.model.Student;
-import com.fencgut961.aad.util.Constant;
+import com.jsalmar.aad.application.StudentService;
+import com.jsalmar.aad.model.Module;
+import com.jsalmar.aad.model.Student;
+import com.jsalmar.aad.util.Constant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

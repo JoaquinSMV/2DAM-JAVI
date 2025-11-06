@@ -1,9 +1,9 @@
 package com.jsalmar.aad.application;
 
-import com.fencgut961.aad.model.Module;
-import com.fencgut961.aad.model.Student;
-import com.fencgut961.aad.repository.ModuleRepository;
-import com.fencgut961.aad.repository.StudentRepository;
+import com.jsalmar.aad.model.Module;
+import com.jsalmar.aad.model.Student;
+import com.jsalmar.aad.repository.ModuleRepository;
+import com.jsalmar.aad.repository.StudentJdbcRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentService implements CustomService<Student> {
 
-    private final StudentRepository studentRepository;
+    private final StudentJdbcRepository studentRepository;
     private final ModuleRepository moduleRepository;
 
 //    public StudentService(StudentRepository studentRepository) {

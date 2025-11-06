@@ -3,7 +3,7 @@ package com.jsalmar.aad.model;
 import lombok.Data;
 import lombok.ToString;
 
-import java.lang.Module;
+import com.jsalmar.aad.model.Module;
 import java.util.List;
 
 @Data
