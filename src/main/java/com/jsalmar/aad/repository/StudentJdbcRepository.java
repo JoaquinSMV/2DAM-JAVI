@@ -52,7 +52,7 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
              PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
 
             ps.setString(1, entity.getName());
-            ps.setString(2, entity.getDni()); // DNI va en email
+            ps.setString(2, entity.getDni()); // DNI va en email cuando deberia de ir en DNI ... arreglalo
 
             ps.executeUpdate();
 

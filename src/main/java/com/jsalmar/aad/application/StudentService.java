@@ -36,4 +36,18 @@ public class StudentService implements CustomService<Student> {
         }
         return null;
     }
+
+    public Student updateStudent(final Student student) {
+        if (validate(student)) {
+            return studentRepository.update(student);
+        }
+        return null;
+    }
+
+    public boolean deleteStudent(final Student student) {
+        if (validate(student)) {
+            return studentRepository.delete(student);
+        }
+        return false;
+    }
 }
