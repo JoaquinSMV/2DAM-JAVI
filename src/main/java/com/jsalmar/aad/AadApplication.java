@@ -25,7 +25,7 @@ public class AadApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Student vito = new Student("12345678A", "John", "Doe", "Computer Science");
+        Student vito = new Student("john@madafaka.king", "John", "Doe", "Computer Science");
         Module module1 = new Module("CS101", "Introduction to Computer Science");
         Module module2 = new Module("CS102", "Data Structures");
         List<Module> modules = List.of(module1, module2);
