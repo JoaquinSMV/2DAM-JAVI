@@ -26,7 +26,8 @@ public class StudentService implements CustomService<Student> {
      */
     @Override
     public boolean validate(Student entity) {
-        return !entity.getDni().isBlank() && !entity.getName().isBlank();
+        return entity != null && entity.getNif() != null && !entity.getNif().isBlank()
+                && entity.getName() != null && !entity.getName().isBlank();
     }
 
     public Student createStudent(final Student student, final List<Module> modules) {

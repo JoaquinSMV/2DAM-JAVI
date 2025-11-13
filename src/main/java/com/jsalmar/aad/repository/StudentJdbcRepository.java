@@ -10,33 +10,28 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-//ctrl + mayus + r
-
 @Repository
 @Slf4j
 public class StudentJdbcRepository implements CrudRepository<Student> {
 
-
     private static final String SQL_INSERT = """
-            INSERT INTO alumno (nombre, email)
-            VALUES (?, ?)
+            INSERT INTO alumno (nombre, nif, email) VALUES (?, ?, ?)
+            """;
+
+    private static final String SQL_FIND_ALL = """
+            SELECT nombre, nif, email FROM alumno = ?
             """;
 
     private static final String SQL_SELECT_BY_DNI = """
-            SELECT id_alumno, nombre, email
-                FROM alumno
-                WHERE id_alumno = ?
+            SELECT nombre, nif, email FROM alumno WHERE nif = ?
             """;
 
     private static final String SQL_UPDATE = """
-            UPDATE alumno
-            SET nombre = ?
-            WHERE email = ?
+            UPDATE alumno SET nombre = ? WHERE nif = ?
             """;
 
     private static final String SQL_DELETE = """
-            DELETE FROM alumno
-            WHERE email = ?
+            DELETE FROM alumno WHERE nif = ?
             """;
 
     private final DataSource dataSource;
@@ -48,14 +43,19 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
     @Override
     public Student create(Student entity) {
         if (entity == null) throw new IllegalArgumentException("Student cannot be null");
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
 
             ps.setString(1, entity.getName());
-            ps.setString(2, entity.getDni()); // DNI va en email cuando deberia de ir en DNI ... arreglalo
+            ps.setString(2, entity.getNif());
+
+            String email = entity.getEmail() != null
+                    ? entity.getEmail()
+                    : ((entity.getNif() != null ? entity.getNif() : "unknown") + "@example.com");
+            ps.setString(3, email);
 
             ps.executeUpdate();
-
             log.info("create OK: {}", entity);
             return entity;
         } catch (SQLException e) {
@@ -65,78 +65,108 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
 
     @Override
     public Student read(Student entity) {
-        // getId -> getDni
-        if (entity == null || entity.getDni() == null) {
-            throw new IllegalArgumentException("read requires a Student with non-null dni");
+        if (entity == null || entity.getNif() == null) {
+            throw new IllegalArgumentException("read requires a Student with non-null nif");
         }
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_DNI)) {
 
-            ps.setString(1, entity.getDni());
+            ps.setString(1, entity.getNif());
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Student found = mapRow(rs);
-                    // Preserve surname from input (DB has no surname)
-                    found.setSurname(entity.getSurname()); // setLastName -> setSurname (el bueno)
                     log.info("read OK: {}", found);
                     return found;
                 } else {
-                    log.info("read: no student found with dni={}", entity.getDni());
+                    log.info("read: no student found with nif={}", entity.getNif());
                     return null;
                 }
             }
+
         } catch (SQLException e) {
-            throw new RuntimeException("Error reading Student dni=" + entity.getDni(), e);
+            throw new RuntimeException("Error reading Student nif=" + entity.getNif(), e);
         }
     }
 
     @Override
     public Student update(Student entity) {
-        // getId -> getDni
-        if (entity == null || entity.getDni() == null) {
-            throw new IllegalArgumentException("update requires a Student with non-null dni");
+        if (entity == null || entity.getNif() == null) {
+            throw new IllegalArgumentException("update requires a Student with non-null nif");
         }
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_UPDATE)) {
 
-            // setFirstName -> setName (using getter for update)
             ps.setString(1, entity.getName());
-            ps.setString(2, entity.getDni());
+            ps.setString(2, entity.getNif());
 
             int updated = ps.executeUpdate();
             if (updated == 0) {
-                throw new RuntimeException("Student not found for update: dni=" + entity.getDni());
+                throw new RuntimeException("Student not found for update: nif=" + entity.getNif());
             }
+
             log.info("update OK: {}", entity);
             return entity;
+
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating Student dni=" + entity.getDni(), e);
+            throw new RuntimeException("Error updating Student nif=" + entity.getNif(), e);
         }
     }
 
     @Override
-    public boolean delete(Student entity) {
-        // getId -> getDni
-        if (entity == null || entity.getDni() == null) {
-            throw new IllegalArgumentException("delete requires a Student with non-null dni");
+    public Student findAll(Student entity) {
+        if (entity == null) {
+            throw new IllegalArgumentException("findAll requires a Student");
         }
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_ALL)) {
+            ps.setString(1, entity.getNif());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Student found = mapRow(rs);
+                    log.info("findAll OK: {}", found);
+                    return found;
+                } else {
+                    log.info("findAll: no student found with nif={}", entity.getNif());
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding Student", e);
+        }
+
+    }
+
+    @Override
+    public boolean delete(Student entity) {
+        if (entity == null || entity.getNif() == null) {
+            throw new IllegalArgumentException("delete requires a Student with non-null nif");
+        }
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_DELETE)) {
 
-            ps.setString(1, entity.getDni());
+            ps.setString(1, entity.getNif());
+
             int deleted = ps.executeUpdate();
             boolean ok = deleted > 0;
-            log.info("delete {} for dni={}", ok ? "OK" : "NOOP", entity.getDni());
+
+            log.info("delete {} for nif={}", ok ? "OK" : "NOOP", entity.getNif());
             return ok;
+
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting Student dni=" + entity.getDni(), e);
+            throw new RuntimeException("Error deleting Student nif=" + entity.getNif(), e);
         }
     }
 
     private Student mapRow(ResultSet rs) throws SQLException {
-        String email = rs.getString("email");  // El DNI está en email
-        String name = rs.getString("nombre");
-        String surname = ""; // not persisted
-        return new Student(email, name, surname);
+        Student s = new Student();
+        s.setName(rs.getString("nombre"));
+        s.setNif(rs.getString("nif"));
+        s.setEmail(rs.getString("email")); // agregar email
+        return s;
     }
 }
