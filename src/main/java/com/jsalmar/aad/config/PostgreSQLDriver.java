@@ -5,6 +5,8 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -34,10 +36,6 @@ public class PostgreSQLDriver {
 
     private Connection connection;
 
-    /**
-     * Se ejecuta automáticamente al iniciar la aplicación
-     * Establece la conexión y ejecuta los scripts SQL
-     */
     @PostConstruct
     public void init() {
         try {
@@ -46,43 +44,56 @@ public class PostgreSQLDriver {
             connection = DriverManager.getConnection(url, username, password);
             log.info("Conexión a PostgreSQL establecida correctamente");
 
-            // Ejecutar scripts SQL en orden
+            // Listar archivos SQL
+            listSqlFiles();
+
+            // Ejecutar scripts en orden
             executeScriptFromFile("sql/01_schema.sql");
             executeScriptFromFile("sql/02_procedures.sql");
 
-            log.info("Scripts SQL ejecutados correctamente");
+            log.info("Todos los scripts SQL ejecutados correctamente");
         } catch (ClassNotFoundException e) {
             log.error("Driver de PostgreSQL no encontrado", e);
         } catch (SQLException e) {
             log.error("Error al conectar con PostgreSQL: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error inesperado en init: {}", e.getMessage(), e);
         }
     }
 
-    /**
-     * Ejecuta un archivo SQL desde resources
-     *
-     * @param filePath ruta del archivo SQL relativa a resources
-     */
-    private void executeScriptFromFile(String filePath) {
+    private void listSqlFiles() {
         try {
-            log.info("Ejecutando script: {}", filePath);
+            Resource[] resources = new PathMatchingResourcePatternResolver()
+                    .getResources("classpath*:sql/*.sql");
+            log.info("Archivos SQL encontrados en classpath:");
+            for (Resource resource : resources) {
+                log.info(" - {}", resource.getFilename());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudieron listar archivos SQL: {}", e.getMessage());
+        }
+    }
+
+    public void executeScriptFromFile(String filePath) {
+        try {
+            log.info("Buscando script: {}", filePath);
             ClassPathResource resource = new ClassPathResource(filePath);
+
+            if (!resource.exists()) {
+                log.error("Archivo no encontrado: {}", filePath);
+                return;
+            }
 
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
 
+                // Leer todo el contenido del archivo
                 String sqlScript = reader.lines().collect(Collectors.joining("\n"));
+                log.info("Ejecutando script de {} caracteres", sqlScript.length());
 
-                // Dividir por punto y coma para ejecutar cada statement
-                String[] statements = sqlScript.split(";");
-
+                // Ejecutar usando ScriptUtils (evita problemas de $$)
                 try (Statement stmt = connection.createStatement()) {
-                    for (String sql : statements) {
-                        String trimmedSql = sql.trim();
-                        if (!trimmedSql.isEmpty() && !trimmedSql.startsWith("--")) {
-                            stmt.execute(trimmedSql);
-                        }
-                    }
+                    stmt.execute(sqlScript);
                 }
 
                 log.info("Script {} ejecutado correctamente", filePath);
@@ -92,24 +103,13 @@ public class PostgreSQLDriver {
         }
     }
 
-    /**
-     * Obtiene la conexión a la base de datos
-     *
-     * @return Connection objeto de conexión
-     * @throws SQLException si la conexión no está disponible
-     */
     public Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
-            throw new SQLException("Conexión no disponible");
+            connection = DriverManager.getConnection(url, username, password);
         }
-        if (connection != null) return connection;
-        return DriverManager.getConnection(url, username, password);
-
+        return connection;
     }
 
-    /**
-     * Cierra la conexión al destruir el componente
-     */
     @PreDestroy
     public void destroy() {
         try {
@@ -122,11 +122,6 @@ public class PostgreSQLDriver {
         }
     }
 
-    /**
-     * Verifica si la conexión está activa
-     *
-     * @return true si la conexión está activa, false en caso contrario
-     */
     public boolean isConnected() {
         try {
             return connection != null && !connection.isClosed();
@@ -136,38 +131,35 @@ public class PostgreSQLDriver {
         }
     }
 
+    // ----------------------------
+// Manejo de transacciones
+// ----------------------------
     public void beginTransaction() throws SQLException {
-        if (connection != null) throw new IllegalStateException("connection already active");
-        connection = DriverManager.getConnection(url, username, password);
-        connection.setAutoCommit(false);
+        Connection conn = getConnection();
+        if (conn.getAutoCommit()) {
+            conn.setAutoCommit(false);
+        }
     }
 
     public void commit() throws SQLException {
-        if (connection == null) throw new IllegalStateException("No active connection");
-        try {
-            connection.commit();
-        } finally {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                log.error("Close error: {}", e.getMessage());
-            }
-            connection = null;
+        Connection conn = getConnection(); // usar la conexión interna
+        if (!conn.getAutoCommit()) {
+            conn.commit();
+            conn.setAutoCommit(true);
         }
     }
 
     public void rollback() {
-        if (connection == null) return;
         try {
-            connection.rollback();
-        } catch (SQLException e) {
-            log.error("Rollback error: {}", e.getMessage());
-        } finally {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                log.error("Close error: {}", e.getMessage());
+            Connection conn = getConnection(); // usar la conexión interna
+            if (!conn.getAutoCommit()) {
+                conn.rollback();
+                conn.setAutoCommit(true);
             }
+        } catch (SQLException e) {
+            log.error("Error en rollback: {}", e.getMessage());
         }
     }
+
+
 }

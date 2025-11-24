@@ -14,16 +14,17 @@ import java.util.List;
 
 @Repository
 @Slf4j
-public abstract class ModuleRepository implements CrudRepository<Module> { //Lo he puesto abstracto porque me daba un error y me decia el mismo intellIJ que lo pusiera en abstracto
+public class ModuleRepository implements CrudRepository<Module> {
 
     private static final String SQL_INSERT = """
-            INSERT INTO modulo (codigo, nombre, horas) VALUES (?, ?, ?)
+                    INSERT INTO modulo (codigo, nombre, horas) VALUES (?, ?, ?)
             """;
+
     private static final String SQL_FIND_ALL = """
-            SELECT id, codigo, nombre, horas FROM modulo
+                    SELECT id_modulo, codigo, nombre, horas FROM modulo
             """;
     private static final String SQL_FIND_BY_ID = """
-            SELECT id, codigo, nombre, horas FROM modulo WHERE id = ?
+            SELECT id_modulo, codigo, nombre, horas FROM modulo WHERE id_modulo = ?
             """;
     private static final String SQL_UPDATE = """
             UPDATE modulo SET codigo = ?, nombre = ?, horas = ? WHERE id = ?
@@ -41,29 +42,30 @@ public abstract class ModuleRepository implements CrudRepository<Module> { //Lo 
     // -----------------------------
     // Métodos del CrudRepository
     // -----------------------------
+
     @Override
-    public Module create(Module entity) {
-        if (entity == null) throw new IllegalArgumentException("Module cannot be null");
+    public Module create(Module m) {
+        if (m == null) throw new IllegalArgumentException("Module cannot be null");
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-            ps.setString(1, entity.getCode());
-            ps.setString(2, entity.getName());
-            ps.setInt(3, entity.getHours());
+            ps.setString(1, m.getCode());
+            ps.setString(2, m.getName());
+            ps.setInt(3, m.getHours());
 
             int affectedRows = ps.executeUpdate();
 
             if (affectedRows > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
-                        entity.setId(rs.getInt(1));
+                        m.setId(rs.getInt(1));
                     }
                 }
             }
 
-            log.info("Module inserted: {}", entity);
-            return entity;
+            log.info("Module inserted: {}", m);
+            return m;
 
         } catch (SQLException e) {
             log.error("Error inserting module", e);
@@ -80,27 +82,27 @@ public abstract class ModuleRepository implements CrudRepository<Module> { //Lo 
     }
 
     @Override
-    public Module update(Module entity) {
-        if (entity == null || entity.getId() == null) {
+    public Module update(Module m) {
+        if (m == null || m.getId() == null) {
             throw new IllegalArgumentException("Module and its ID cannot be null for update");
         }
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_UPDATE)) {
 
-            ps.setString(1, entity.getCode());
-            ps.setString(2, entity.getName());
-            ps.setInt(3, entity.getHours());
-            ps.setInt(4, entity.getId());
+            ps.setString(1, m.getCode());
+            ps.setString(2, m.getName());
+            ps.setInt(3, m.getHours());
+            ps.setInt(4, m.getId());
 
             int affectedRows = ps.executeUpdate();
 
             if (affectedRows > 0) {
-                log.info("Module updated: {}", entity);
-                return entity;
+                log.info("Module updated: {}", m);
+                return m;
             }
 
-            log.warn("Module not updated, id not found: {}", entity.getId());
+            log.warn("Module not updated, id not found: {}", m.getId());
             return null;
 
         } catch (SQLException e) {
@@ -110,12 +112,23 @@ public abstract class ModuleRepository implements CrudRepository<Module> { //Lo 
     }
 
     @Override
+    public Module findAll(Module entity) {
+        return null;
+    }
+
+    @Override
     public boolean delete(Module entity) {
         if (entity == null || entity.getId() == null) {
             throw new IllegalArgumentException("Module and its ID cannot be null");
         }
         return deleteById(entity.getId());
     }
+
+    @Override
+    public boolean validate(Module entity) {
+        return entity != null && entity.getCode() != null && entity.getName() != null;
+    }
+
 
     // -----------------------------
     // Métodos específicos
@@ -191,10 +204,10 @@ public abstract class ModuleRepository implements CrudRepository<Module> { //Lo 
     // -----------------------------
     private Module mapRow(ResultSet rs) throws SQLException {
         Module m = new Module();
-        m.setId(rs.getInt("id"));
-        m.setCode(rs.getString("codigo"));
-        m.setName(rs.getString("nombre"));
-        m.setHours(rs.getInt("horas"));
+        m.setId(rs.getInt("id_modulo"));      // Mapear id_modulo → id
+        m.setCode(rs.getString("codigo"));    // Mapear codigo → code
+        m.setName(rs.getString("nombre"));    // Mapear nombre → name
+        m.setHours(rs.getInt("horas"));       // Mapear horas → hours
         return m;
     }
 }

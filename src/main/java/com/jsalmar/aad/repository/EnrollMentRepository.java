@@ -16,19 +16,21 @@ public class EnrollMentRepository {
 
     // Consultas SQL
     private static final String SQL_INSERT_ENROLLMENT = """
-            INSERT INTO matricula (student_id, module_id, enrollment_date)
-            VALUES (?, ?, ?)
+            INSERT INTO matricula (id_alumno, id_modulo, fecha) VALUES (?, ?, ?)
             """;
+
     private static final String SQL_FIND_ALL = """
-            SELECT id, student_id, module_id, enrollment_date FROM matricula
+            SELECT id_alumno, id_modulo, fecha FROM matricula
             """;
+
     private static final String SQL_FIND_BY_STUDENT = """
-            SELECT id, student_id, module_id, enrollment_date FROM matricula
-            WHERE student_id = ?
+            SELECT id_alumno, id_modulo, fecha FROM matricula WHERE id_alumno = ?
             """;
+
     private static final String SQL_DELETE = """
-            DELETE FROM matricula WHERE student_id = ? AND module_id = ?
+            DELETE FROM matricula WHERE id_alumno = ? AND id_modulo = ?
             """;
+
     private static final String SQL_COUNT_ENROLLMENTS = """
             SELECT count_enrollments(?) AS total
             """;
@@ -57,7 +59,6 @@ public class EnrollMentRepository {
                 for (Module module : modules) {
                     ps.setInt(1, enrollment.getStudentId());
                     ps.setInt(2, module.getId());
-                    // Conversión correcta de LocalDate a java.sql.Date
                     ps.setDate(3, java.sql.Date.valueOf(enrollment.getEnrollmentDate()));
                     ps.addBatch();
                 }
@@ -67,7 +68,6 @@ public class EnrollMentRepository {
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                     int index = 0;
                     while (generatedKeys.next()) {
-                        // Si necesitas asignar los IDs a las matrículas
                         int generatedId = generatedKeys.getInt(1);
                         log.debug("Matrícula creada con ID: {}", generatedId);
                     }
@@ -167,16 +167,34 @@ public class EnrollMentRepository {
         }
     }
 
+    public int count_enrollments(int studentId) {
+        try (Connection con = dataSource.getConnection();
+             CallableStatement cs = con.prepareCall("{ ? = call count_enrollments(?) }")) {
+
+            cs.registerOutParameter(1, java.sql.Types.INTEGER); // parámetro de salida
+            cs.setInt(2, studentId); // parámetro de entrada
+            cs.execute();
+
+            int total = cs.getInt(1); // obtenemos el resultado
+            log.info("Total enrollments for student {}: {}", studentId, total);
+            return total; // <-- debes devolverlo
+
+        } catch (SQLException e) {
+            log.error("Error counting enrollments (CallableStatement) for student {}", studentId, e);
+            throw new RuntimeException("Error counting enrollments", e);
+        }
+    }
+
+
     // -----------------------------
     // Auxiliar
     // -----------------------------
+
     private Enrollment mapRow(ResultSet rs) throws SQLException {
         Enrollment e = new Enrollment();
-        e.setId(rs.getInt("id")); // ¡IMPORTANTE: No olvides el ID!
-        e.setStudentId(rs.getInt("student_id"));
-        e.setModuleId(rs.getInt("module_id"));
-        // Conversión de java.sql.Date a LocalDate
-        Date sqlDate = rs.getDate("enrollment_date");
+        e.setStudentId(rs.getInt("id_alumno"));     // Mapear id_alumno → studentId
+        e.setModuleId(rs.getInt("id_modulo"));      // Mapear id_modulo → moduleId
+        Date sqlDate = rs.getDate("fecha");         // Mapear fecha → enrollmentDate
         if (sqlDate != null) {
             e.setEnrollmentDate(sqlDate.toLocalDate());
         }

@@ -1,7 +1,5 @@
 package com.jsalmar.aad.repository;
 
-import com.jsalmar.aad.model.Student;
-
 public interface CrudRepository<T> {
 
     T create(T entity);
@@ -10,8 +8,11 @@ public interface CrudRepository<T> {
 
     T update(T entity);
 
-    Student findAll(Student entity);
+    T findAll(T entity);
 
     boolean delete(T entity);
+
+    boolean validate(T entity);
+
 
 }
