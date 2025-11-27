@@ -22,4 +22,5 @@ public class Student {
 
 
     // public Student(Integer id, String nif, String name, String email, String curse, List<Module> modules) { }
+    // quito esto porque con lo de @AllArgsConstructor y el orden de la colocacion sirve ya
 }

@@ -98,7 +98,6 @@ public class ManagementService implements CrudRepository<Module> {
         try {
             postgreSQLDriver.beginTransaction();
 
-            // ✅ CORREGIDO: Usar findById en lugar de read
             Student student = studentRepository.findById(studentId);
             if (student == null) {
                 throw new RuntimeException("Student not found: id=" + studentId);

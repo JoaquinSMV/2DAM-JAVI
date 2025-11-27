@@ -200,7 +200,7 @@ public class ModuleRepository implements CrudRepository<Module> {
     }
 
     // -----------------------------
-    // Método auxiliar
+    // MapRow para mapear...
     // -----------------------------
     private Module mapRow(ResultSet rs) throws SQLException {
         Module m = new Module();

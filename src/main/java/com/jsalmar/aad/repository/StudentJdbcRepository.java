@@ -142,6 +142,7 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
     // -----------------------------
     // Método requerido por CrudRepository
     // -----------------------------
+
     @Override
     public boolean validate(Student entity) {
         return entity != null && entity.getName() != null && entity.getNif() != null;
@@ -150,6 +151,7 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
     // -----------------------------
     // Auxiliar
     // -----------------------------
+
     private Student mapRow(ResultSet rs) throws SQLException {
         Student s = new Student();
         s.setId(rs.getInt("id_alumno"));      // Mapear id_alumno → id

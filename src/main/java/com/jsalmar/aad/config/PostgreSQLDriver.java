@@ -132,8 +132,8 @@ public class PostgreSQLDriver {
     }
 
     // ----------------------------
-// Manejo de transacciones
-// ----------------------------
+    // Manejo de transacciones...
+    // ----------------------------
     public void beginTransaction() throws SQLException {
         Connection conn = getConnection();
         if (conn.getAutoCommit()) {

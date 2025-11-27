@@ -33,7 +33,7 @@ public class AadApplication implements CommandLineRunner {
         programacion = managementService.createM(programacion);
         managementService.enrollstudent(miriam.getId(), programacion.getId());
 
-        // Para eliminar necesitas inyectar StudentJdbcRepository
+        // Para eliminar necesito inyectar StudentJdbcRepository
         // studentRepository.delete(miriam);
     }
 }
