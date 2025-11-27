@@ -86,7 +86,10 @@ recursos JDBC tras su uso, previniendo fugas de memoria y bloqueos de conexión.
 La clase `EnrollMentRepository` invoca la función `count_enrollments` de PostgreSQL utilizando un **`CallableStatement`
 **, demostrando la capacidad de ejecutar lógica de negocio directamente en el servidor de la base de datos.
 
-```java
-// Ejemplo de invocación en EnrollMentRepository.java
-cs.prepareCall("{ ? = call count_enrollments(?) }")
+### Java
+
+```
+Ejemplo de invocación en EnrollMentRepository.java ;
+
+cs.prepareCall("{ ? = call count_enrollments(?) }");
 ```
