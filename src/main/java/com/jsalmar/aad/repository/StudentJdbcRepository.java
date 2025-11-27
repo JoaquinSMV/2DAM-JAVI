@@ -45,7 +45,6 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-            // ✅ ORDEN CORRECTO según: INSERT INTO alumno (nif, nombre, email)
             ps.setString(1, entity.getNif());      // nif
             ps.setString(2, entity.getName());     // nombre
             ps.setString(3, entity.getEmail());    // email

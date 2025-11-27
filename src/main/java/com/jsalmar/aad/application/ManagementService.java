@@ -66,7 +66,7 @@ public class ManagementService implements CrudRepository<Module> {
     //---------------------------------------
 
     public Student createS(Student student) {
-        if (student == null || student.getNif() == null || student.getName() == null) {
+        if (!studentRepository.validate(student)) {
             throw new IllegalArgumentException("Student and NIF are required...");
         }
         //Igual que arriba pero ahora con estudiantes
@@ -153,6 +153,6 @@ public class ManagementService implements CrudRepository<Module> {
 
     @Override
     public boolean validate(Module entity) {
-        return false;
+        return entity != null;
     }
 }

@@ -11,8 +11,10 @@ import lombok.ToString;
 @ToString
 public class Module {
 
+    private Integer id;
     private String code;
     private String name;
-    private Integer id;
     private Integer hours;
+
+
 }
