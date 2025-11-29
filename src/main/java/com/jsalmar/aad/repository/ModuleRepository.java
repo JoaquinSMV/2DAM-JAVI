@@ -2,15 +2,16 @@ package com.jsalmar.aad.repository;
 
 import com.jsalmar.aad.model.Module;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
+import java.sql.Statement;
 import java.util.List;
+import java.util.Objects;
 
 @Repository
 @Slf4j
@@ -26,17 +27,30 @@ public class ModuleRepository implements CrudRepository<Module> {
     private static final String SQL_FIND_BY_ID = """
             SELECT id_modulo, codigo, nombre, horas FROM modulo WHERE id_modulo = ?
             """;
+    // Nota: La sentencia UPDATE original tenía WHERE id = ?. Se asume que 'id' es 'id_modulo'.
     private static final String SQL_UPDATE = """
-            UPDATE modulo SET codigo = ?, nombre = ?, horas = ? WHERE id = ?
+            UPDATE modulo SET codigo = ?, nombre = ?, horas = ? WHERE id_modulo = ?
             """;
     private static final String SQL_DELETE = """
-            DELETE FROM modulo WHERE id = ?
+            DELETE FROM modulo WHERE id_modulo = ?
             """;
 
-    private final DataSource dataSource;
+    private final JdbcTemplate jdbcTemplate;
 
-    public ModuleRepository(DataSource dataSource) {
-        this.dataSource = dataSource;
+    private final RowMapper<Module> moduleRowMapper = (rs, rowNum) -> {
+        Module m = new Module();
+        m.setId(rs.getInt("id_modulo"));
+        m.setCode(rs.getString("codigo"));
+        m.setName(rs.getString("nombre"));
+        m.setHours(rs.getInt("horas"));
+
+        return m;
+
+    };
+
+
+    public ModuleRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     // -----------------------------
@@ -45,169 +59,157 @@ public class ModuleRepository implements CrudRepository<Module> {
 
     @Override
     public Module create(Module m) {
+
         if (m == null) throw new IllegalArgumentException("Module cannot be null");
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
 
-            ps.setString(1, m.getCode());
-            ps.setString(2, m.getName());
-            ps.setInt(3, m.getHours());
+        int affectedRows = jdbcTemplate.update(connection -> {
 
-            int affectedRows = ps.executeUpdate();
+                    var ps = connection.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
+                    ps.setString(1, m.getCode());
+                    ps.setString(2, m.getName());
+                    ps.setInt(3, m.getHours());
 
-            if (affectedRows > 0) {
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        m.setId(rs.getInt(1));
-                    }
+                    return ps;
+
                 }
-            }
+                , keyHolder);
 
+        if (affectedRows > 0) {
+
+            m.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
             log.info("Module inserted: {}", m);
+
             return m;
 
-        } catch (SQLException e) {
-            log.error("Error inserting module", e);
-            throw new RuntimeException("Error inserting module", e);
         }
+
+        throw new RuntimeException("Error inserting module. No rows affected.");
+
     }
 
     @Override
     public Module read(Module entity) {
         if (entity == null || entity.getId() == null) {
+
             throw new IllegalArgumentException("Module and its ID cannot be null");
         }
+
         return findById(entity.getId());
+
     }
 
     @Override
     public Module update(Module m) {
+
         if (m == null || m.getId() == null) {
+
             throw new IllegalArgumentException("Module and its ID cannot be null for update");
+
         }
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE)) {
+        int affectedRows = jdbcTemplate.update(SQL_UPDATE,
 
-            ps.setString(1, m.getCode());
-            ps.setString(2, m.getName());
-            ps.setInt(3, m.getHours());
-            ps.setInt(4, m.getId());
+                m.getCode(),
+                m.getName(),
+                m.getHours(),
+                m.getId()
 
-            int affectedRows = ps.executeUpdate();
+        );
 
-            if (affectedRows > 0) {
-                log.info("Module updated: {}", m);
-                return m;
-            }
+        if (affectedRows > 0) {
 
-            log.warn("Module not updated, id not found: {}", m.getId());
-            return null;
+            log.info("Module updated: {}", m);
 
-        } catch (SQLException e) {
-            log.error("Error updating module", e);
-            throw new RuntimeException("Error updating module", e);
+            return m;
+
         }
+
+        log.warn("Module not updated, id not found: {}", m.getId());
+
+        return null;
+
     }
 
     @Override
     public Module findAll(Module entity) {
+
         return null;
+
     }
 
     @Override
     public boolean delete(Module entity) {
+
         if (entity == null || entity.getId() == null) {
+
             throw new IllegalArgumentException("Module and its ID cannot be null");
+
         }
+
+
         return deleteById(entity.getId());
+
     }
 
     @Override
     public boolean validate(Module entity) {
+
         return entity != null && entity.getCode() != null && entity.getName() != null;
+
     }
 
 
     // -----------------------------
     // Métodos específicos
     // -----------------------------
+
+
     public List<Module> findAll() {
-        List<Module> modules = new ArrayList<>();
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_FIND_ALL);
-             ResultSet rs = ps.executeQuery()) {
+        List<Module> modules = jdbcTemplate.query(SQL_FIND_ALL, moduleRowMapper);
 
-            while (rs.next()) {
-                Module module = mapRow(rs);
-                modules.add(module);
-            }
+        log.info("Found {} modules", modules.size());
 
-            log.info("Found {} modules", modules.size());
-            return modules;
+        return modules;
 
-        } catch (SQLException e) {
-            log.error("Error finding all modules", e);
-            throw new RuntimeException("Error finding all modules", e);
-        }
     }
 
     public Module findById(int id) {
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_FIND_BY_ID)) {
 
-            ps.setInt(1, id);
+        try {
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Module module = mapRow(rs);
-                    log.info("Module found: {}", module);
-                    return module;
-                }
-            }
+            Module module = jdbcTemplate.queryForObject(SQL_FIND_BY_ID, moduleRowMapper, id);
+            log.info("Module found: {}", module);
+
+            return module;
+
+        } catch (EmptyResultDataAccessException e) {
 
             log.warn("Module not found with id: {}", id);
+
             return null;
 
-        } catch (SQLException e) {
-            log.error("Error finding module by id: {}", id, e);
-            throw new RuntimeException("Error finding module by id", e);
         }
     }
 
     public boolean deleteById(int id) {
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_DELETE)) {
 
-            ps.setInt(1, id);
+        int deleted = jdbcTemplate.update(SQL_DELETE, id);
 
-            int affectedRows = ps.executeUpdate();
+        boolean ok = deleted > 0;
 
-            if (affectedRows > 0) {
-                log.info("Module deleted with id: {}", id);
-                return true;
-            }
+        if (ok) {
+
+            log.info("Module deleted with id: {}", id);
+
+        } else {
 
             log.warn("Module not deleted, id not found: {}", id);
-            return false;
 
-        } catch (SQLException e) {
-            log.error("Error deleting module with id: {}", id, e);
-            throw new RuntimeException("Error deleting module", e);
         }
-    }
 
-    // -----------------------------
-    // MapRow para mapear...
-    // -----------------------------
-    private Module mapRow(ResultSet rs) throws SQLException {
-        Module m = new Module();
-        m.setId(rs.getInt("id_modulo"));      // Mapear id_modulo → id
-        m.setCode(rs.getString("codigo"));    // Mapear codigo → code
-        m.setName(rs.getString("nombre"));    // Mapear nombre → name
-        m.setHours(rs.getInt("horas"));       // Mapear horas → hours
-        return m;
+        return ok;
     }
 }

@@ -1,7 +1,7 @@
 package com.jsalmar.aad.application;
 
-import com.jsalmar.aad.config.PostgreSQLDriver;
-import com.jsalmar.aad.model.Enrollment;
+//import com.jsalmar.aad.config.PostgreSQLDriver;
+
 import com.jsalmar.aad.model.Module;
 import com.jsalmar.aad.model.Student;
 import com.jsalmar.aad.repository.CrudRepository;
@@ -10,8 +10,8 @@ import com.jsalmar.aad.repository.ModuleRepository;
 import com.jsalmar.aad.repository.StudentJdbcRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -21,16 +21,16 @@ public class ManagementService implements CrudRepository<Module> {
     private final StudentJdbcRepository studentRepository;
     private final ModuleRepository moduleRepository;
     private final EnrollMentRepository enrollMentRepository;
-    private PostgreSQLDriver postgreSQLDriver;
+    //private PostgreSQLDriver postgreSQLDriver;
 
 
     //Hacemos el constructor
-    public ManagementService(StudentJdbcRepository studentRepository, ModuleRepository moduleRepository, EnrollMentRepository enrollMentRepository, PostgreSQLDriver postgreSQLDriver) {
+    public ManagementService(StudentJdbcRepository studentRepository, ModuleRepository moduleRepository, EnrollMentRepository enrollMentRepository) {
 
         this.studentRepository = studentRepository;
         this.moduleRepository = moduleRepository;
         this.enrollMentRepository = enrollMentRepository;
-        this.postgreSQLDriver = postgreSQLDriver;
+        //this.postgreSQLDriver = postgreSQLDriver;
 
     }
 
@@ -90,39 +90,16 @@ public class ManagementService implements CrudRepository<Module> {
     //          PARA LA MATRICULACIÓN DE LOS ESTUDIANTES
     //--------------------------------------------------------------
 
+    @Transactional
     public void enrollstudent(Integer studentId, Integer moduleId) {
-        if (studentId == null || moduleId == null) {
-            throw new IllegalArgumentException("Student ID and Module ID are required...");
+
+        Student student = studentRepository.findById(studentId);
+
+        if (student == null) {
+            throw new RuntimeException("Student not found: " + studentId);
         }
 
-        try {
-            postgreSQLDriver.beginTransaction();
-
-            Student student = studentRepository.findById(studentId);
-            if (student == null) {
-                throw new RuntimeException("Student not found: id=" + studentId);
-            }
-
-            Module module = moduleRepository.findById(moduleId);
-            if (module == null) {
-                throw new RuntimeException("Module not found: id=" + moduleId);
-            }
-
-            Enrollment enrollment = new Enrollment();
-            enrollment.setStudentId(studentId);
-            enrollment.setModuleId(moduleId);
-            enrollment.setEnrollmentDate(LocalDate.now());
-
-            enrollMentRepository.createEnrollment(enrollment, List.of(module));
-
-            postgreSQLDriver.commit();
-            log.info("Student {} enrolled in module {}", studentId, moduleId);
-
-        } catch (Exception e) {
-            postgreSQLDriver.rollback();
-            log.error("Error enrolling student in module", e);
-            throw new RuntimeException("Enrollment failed", e);
-        }
+        enrollMentRepository.createEnrollment(enrollment, List.of(module));
     }
 
     @Override

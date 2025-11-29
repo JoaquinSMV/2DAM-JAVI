@@ -2,13 +2,16 @@ package com.jsalmar.aad.repository;
 
 import com.jsalmar.aad.model.Student;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Objects;
 
 @Repository
 @Slf4j
@@ -32,39 +35,52 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
     private static final String SQL_SELECT_BY_ID = """
             SELECT id_alumno, nombre, nif, email FROM alumno WHERE id_alumno = ?
             """;
-    private final DataSource dataSource;
+    //private final DataSource dataSource;
 
-    public StudentJdbcRepository(DataSource dataSource) {
-        this.dataSource = dataSource;
+    private final JdbcTemplate jdbcTemplate;
+
+    private final RowMapper<Student> studentRowMapper = (rs, rowNum) -> {
+        Student s = new Student();
+        s.setId(rs.getInt("id_alumno"));
+        s.setName(rs.getString("nombre"));
+        s.setNif(rs.getString("nif"));
+        s.setEmail(rs.getString("email"));
+        return s;
+    };
+
+
+    public StudentJdbcRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public Student create(Student entity) {
         if (entity == null) throw new IllegalArgumentException("Student cannot be null");
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        //Voy a usar el KeyHolder para coger la id que se genere..
 
-            ps.setString(1, entity.getNif());      // nif
-            ps.setString(2, entity.getName());     // nombre
-            ps.setString(3, entity.getEmail());    // email
+        KeyHolder keyHolder = new GeneratedKeyHolder();
 
-            int affectedRows = ps.executeUpdate();
+        int affectedRows = jdbcTemplate.update(conection ->
+                {
+                    PreparedStatement ps = conection.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
+                    ps.setString(1, entity.getNif());      // nif
+                    ps.setString(2, entity.getName());     // nombre
+                    ps.setString(3, entity.getEmail());    // email
+                    return ps;
 
-            // Obtener el ID generado
-            if (affectedRows > 0) {
-                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        entity.setId(generatedKeys.getInt(1));
-                    }
                 }
-            }
+                , keyHolder);
 
-            log.info("create OK: {}", entity);
+
+        // Obtener el ID generado
+        if (affectedRows > 0) {
+            entity.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
+            log.info("CREATED OK: {}", entity.getId());
             return entity;
-        } catch (SQLException e) {
-            throw new RuntimeException("Error creating Student", e);
         }
+
+        throw new RuntimeException("Error creating Student: " + entity);
     }
 
     @Override
@@ -72,47 +88,41 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
         if (entity == null || entity.getNif() == null) {
             throw new IllegalArgumentException("read requires a Student with non-null NIF");
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_DNI)) {
 
-            ps.setString(1, entity.getNif());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Student found = mapRow(rs);
-                    log.info("Student found: {}", found);
-                    return found;
-                } else {
-                    log.info("No student found with NIF={}", entity.getNif());
-                    return null;
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error reading Student nif=" + entity.getNif(), e);
+        try {
+
+            Student found = jdbcTemplate.queryForObject(SQL_SELECT_BY_DNI, studentRowMapper, entity.getNif());
+            log.info("Student found: {}", found);
+            return found;
+
+        } catch (EmptyResultDataAccessException e) {
+            log.info("No student found with NIF={}", entity.getNif());
+            return null;
         }
     }
 
     @Override
     public Student update(Student entity) {
+
         if (entity == null || entity.getNif() == null) {
             throw new IllegalArgumentException("update requires a Student with non-null NIF");
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE)) {
 
-            // ✅ ORDEN CORRECTO según: UPDATE alumno SET nombre = ?, email = ? WHERE nif = ?
-            ps.setString(1, entity.getName());     // nombre
-            ps.setString(2, entity.getEmail());    // email
-            ps.setString(3, entity.getNif());      // nif (WHERE clause)
+        int updated = jdbcTemplate.update(SQL_UPDATE,
 
-            int updated = ps.executeUpdate();
-            if (updated == 0) {
-                throw new RuntimeException("Student not found for update: nif=" + entity.getNif());
-            }
-            log.info("Student updated: {}", entity);
-            return entity;
-        } catch (SQLException e) {
-            throw new RuntimeException("Error updating Student nif=" + entity.getNif(), e);
+                entity.getName(),     // nombre
+                entity.getEmail(),    // email
+                entity.getNif()       // nif
+
+        );
+
+        if (updated == 0) {
+            throw new RuntimeException("Student not found for update: nif=" + entity.getNif());
         }
+
+        log.info("Student updated: {}", entity);
+        return entity;
+
     }
 
     @Override
@@ -120,27 +130,27 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
         return null;
     }
 
+    // -----------------------------
+    // Método requerido por CrudRepository
+    // -----------------------------
+
     @Override
     public boolean delete(Student entity) {
+
         if (entity == null || entity.getNif() == null) {
-            throw new IllegalArgumentException("delete requires a Student with non-null NIF");
+            throw new IllegalArgumentException("Delete requires a Student with non-null NIF");
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_DELETE)) {
 
-            ps.setString(1, entity.getNif());
-            int deleted = ps.executeUpdate();
-            boolean ok = deleted > 0;
+        int deleted = jdbcTemplate.update(SQL_DELETE, entity.getNif());
+        boolean ok = deleted > 0;
 
-            log.info("Student delete {} for nif={}", ok ? "OK" : "NOOP", entity.getNif());
-            return ok;
-        } catch (SQLException e) {
-            throw new RuntimeException("Error deleting Student nif=" + entity.getNif(), e);
-        }
+        log.info("Student delete {} for nif={}", ok ? "OK" : "NOOP", entity.getNif());
+        return ok;
+
     }
 
     // -----------------------------
-    // Método requerido por CrudRepository
+    // Auxiliar
     // -----------------------------
 
     @Override
@@ -148,39 +158,22 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
         return entity != null && entity.getName() != null && entity.getNif() != null;
     }
 
-    // -----------------------------
-    // Auxiliar
-    // -----------------------------
-
-    private Student mapRow(ResultSet rs) throws SQLException {
-        Student s = new Student();
-        s.setId(rs.getInt("id_alumno"));      // Mapear id_alumno → id
-        s.setName(rs.getString("nombre"));    // Mapear nombre → name
-        s.setNif(rs.getString("nif"));
-        s.setEmail(rs.getString("email"));
-        return s;
-    }
-
     public Student findById(Integer id) {
+
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_ID)) {
 
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Student found = mapRow(rs);
-                    log.info("Student found by ID: {}", found);
-                    return found;
-                } else {
-                    log.info("No student found with ID={}", id);
-                    return null;
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error reading Student id=" + id, e);
+        try {
+
+            Student found = jdbcTemplate.queryForObject(SQL_SELECT_BY_ID, studentRowMapper, id);
+            log.info("Student found by ID: {}", found);
+            return found;
+
+        } catch (EmptyResultDataAccessException e) {
+            log.info("No student found with ID={}", id);
+            return null;
         }
+
     }
 }
