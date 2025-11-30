@@ -4,3 +4,7 @@ spring:
     username: user
     password: pass
     driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always # Esto pa que se ejecute el script
+      schema-locations: classpath:sql/01_schema.sql

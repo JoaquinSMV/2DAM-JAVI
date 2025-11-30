@@ -18,81 +18,59 @@ import java.util.List;
 @Slf4j
 public class EnrollMentRepository {
 
-    // Consultas SQL
     private static final String SQL_INSERT_ENROLLMENT = """
-            INSERT INTO matricula (id_alumno, id_modulo, fecha) VALUES (?, ?, ?)
+            INSERT INTO "matricula" ("id_alumno", "id_modulo", "fecha") VALUES (?, ?, ?)
             """;
 
     private static final String SQL_FIND_ALL = """
-            SELECT id_alumno, id_modulo, fecha FROM matricula
+            SELECT "id_alumno", "id_modulo", "fecha" FROM "matricula"
             """;
 
     private static final String SQL_FIND_BY_STUDENT = """
-            SELECT id_alumno, id_modulo, fecha FROM matricula WHERE id_alumno = ?
+            SELECT "id_alumno", "id_modulo", "fecha" FROM "matricula" WHERE "id_alumno" = ?
             """;
 
     private static final String SQL_DELETE = """
-            DELETE FROM matricula WHERE id_alumno = ? AND id_modulo = ?
+            DELETE FROM "matricula" WHERE "id_alumno" = ? AND "id_modulo" = ?
             """;
 
     private static final String SQL_COUNT_ENROLLMENTS_SELECT = """
-            SELECT count_enrollments(?) AS total
+            SELECT COUNT(*) FROM "matricula" WHERE "id_alumno" = ?
             """;
 
+
     private final JdbcTemplate jdbcTemplate;
+    private final RowMapper<Enrollment> enrollmentRowMapper = (rs, rowNum) -> {
 
-    private final SimpleJdbcCall simpleJdbcCall;
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudentId(rs.getInt("id_alumno"));
+        enrollment.setModuleId(rs.getInt("id_modulo"));
+        enrollment.setEnrollmentDate(rs.getDate("fecha").toLocalDate());
 
-    private final RowMapper<Enrollment> enrollmentRowMapper = (rs, rowNum) ->
-    {
-
-        Enrollment e = new Enrollment();
-
-        e.setStudentId(rs.getInt("id_alumno"));
-        e.setModuleId(rs.getInt("id_modulo"));
-        Date sqlDate = rs.getDate("fecha");
-
-        if (sqlDate != null) {
-            e.setEnrollmentDate(sqlDate.toLocalDate());
-        }
-
-        return e;
+        return enrollment;
 
     };
+    private SimpleJdbcCall countEnrollmentsCall;
 
-    // Constructor: Inyectamos JdbcTemplate y configuramos SimpleJdbcCall
     public EnrollMentRepository(JdbcTemplate jdbcTemplate) {
 
         this.jdbcTemplate = jdbcTemplate;
-        this.simpleJdbcCall = new SimpleJdbcCall(jdbcTemplate)
-                .withFunctionName("count_enrollments");
 
     }
 
-    // -----------------------------
-    // Métodos
-    // -----------------------------
 
     public void createEnrollment(Enrollment enrollment, List<Module> modules) {
 
-        if (enrollment == null || enrollment.getStudentId() == null) {
+        for (Module module : modules) {
+            int inserted = jdbcTemplate.update(SQL_INSERT_ENROLLMENT,
+                    enrollment.getStudentId(),
+                    module.getId(),
+                    Date.valueOf(enrollment.getEnrollmentDate()));
 
-            throw new IllegalArgumentException("Enrollment and studentId cannot be null");
-
+            boolean ok = inserted > 0;
+            log.info("Enrollment create {} for student {} and module {}", ok ? "OK" : "NOOP", enrollment.getStudentId(), module.getId());
         }
 
-        if (modules == null || modules.isEmpty()) return;
-
-        int[][] affectedRows = jdbcTemplate.batchUpdate(SQL_INSERT_ENROLLMENT, modules, modules.size(), (ps, module) -> {
-
-            ps.setInt(1, enrollment.getStudentId());
-            ps.setInt(2, module.getId());
-            // Conversión de LocalDate a java.sql.Date
-            ps.setDate(3, Date.valueOf(enrollment.getEnrollmentDate()));
-
-        });
-
-        log.info("Batch enrollment created for student {} with {} modules. Affected rows: {}", enrollment.getStudentId(), modules.size(), affectedRows.length);
     }
 
 
@@ -151,12 +129,19 @@ public class EnrollMentRepository {
         SqlParameterSource in = new MapSqlParameterSource()
                 .addValue("studentId", studentId);
 
-        Number total = simpleJdbcCall.executeFunction(Integer.class, in);
+        if (countEnrollmentsCall == null) {
+            countEnrollmentsCall = new SimpleJdbcCall(jdbcTemplate)
+                    .withSchemaName("public")
+                    .withProcedureName("count_enrollments")
+                    .declareParameters(
+                            //new SqlParameter("studentId", Types.INTEGER),
+                            //new SqlOutParameter("total", Types.INTEGER)
+                    );
+        }
 
-        int result = (total != null) ? total.intValue() : 0;
-        log.info("Total enrollments for student {}: {}", studentId, result);
+        var out = countEnrollmentsCall.execute(in);
 
-        return result;
+        return (Integer) out.get("total");
 
     }
 }

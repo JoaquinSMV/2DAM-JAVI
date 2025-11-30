@@ -10,7 +10,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.Objects;
 
 @Repository
@@ -18,34 +17,34 @@ import java.util.Objects;
 public class StudentJdbcRepository implements CrudRepository<Student> {
 
     private static final String SQL_INSERT = """
-            INSERT INTO alumno (nif , nombre , email) VALUES (?, ?, ?)
+            INSERT INTO "alumno" ("nif" , "nombre" , "email") VALUES (?, ?, ?)
             """;
 
     private static final String SQL_SELECT_BY_DNI = """
-            SELECT id_alumno, nombre, nif, email FROM alumno WHERE nif = ?
+            SELECT "id_alumno", "nombre", "nif", "email" FROM "alumno" WHERE "nif" = ?
             """;
 
     private static final String SQL_UPDATE = """
-            UPDATE alumno SET nombre = ?, email = ? WHERE nif = ?
+            UPDATE "alumno" SET "nombre" = ?, "email" = ? WHERE "nif" = ?
             """;
 
     private static final String SQL_DELETE = """
-            DELETE FROM alumno WHERE nif = ?
+            DELETE FROM "alumno" WHERE "nif" = ?
             """;
     private static final String SQL_SELECT_BY_ID = """
-            SELECT id_alumno, nombre, nif, email FROM alumno WHERE id_alumno = ?
+            SELECT "id_alumno", "nombre", "nif", "email" FROM "alumno" WHERE "id_alumno" = ?
             """;
     //private final DataSource dataSource;
 
     private final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<Student> studentRowMapper = (rs, rowNum) -> {
-        Student s = new Student();
-        s.setId(rs.getInt("id_alumno"));
-        s.setName(rs.getString("nombre"));
-        s.setNif(rs.getString("nif"));
-        s.setEmail(rs.getString("email"));
-        return s;
+        Student student = new Student();
+        student.setId(rs.getInt("id_alumno"));
+        student.setNif(rs.getString("nif"));
+        student.setName(rs.getString("nombre"));
+        student.setEmail(rs.getString("email"));
+        return student;
     };
 
 
@@ -53,74 +52,74 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    // -----------------------------
+    // Métodos requeridos por CrudRepository
+    // -----------------------------
+
     @Override
     public Student create(Student entity) {
-        if (entity == null) throw new IllegalArgumentException("Student cannot be null");
 
-        //Voy a usar el KeyHolder para coger la id que se genere..
+        if (entity == null || entity.getName() == null || entity.getNif() == null) {
+            throw new IllegalArgumentException("Student must have non-null name and NIF");
+        }
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
-        int affectedRows = jdbcTemplate.update(conection ->
-                {
-                    PreparedStatement ps = conection.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
-                    ps.setString(1, entity.getNif());      // nif
-                    ps.setString(2, entity.getName());     // nombre
-                    ps.setString(3, entity.getEmail());    // email
-                    return ps;
+        int inserted = jdbcTemplate.update(connection -> {
 
-                }
-                , keyHolder);
+            PreparedStatement ps = connection.prepareStatement(SQL_INSERT, new String[]{"id_alumno"});
 
+            ps.setString(1, entity.getNif());
+            ps.setString(2, entity.getName());
+            ps.setString(3, entity.getEmail());
+            return ps;
+        }, keyHolder);
 
-        // Obtener el ID generado
-        if (affectedRows > 0) {
-            entity.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
-            log.info("CREATED OK: {}", entity.getId());
-            return entity;
+        if (inserted == 0) {
+            throw new IllegalStateException("Insert failed, no rows affected");
         }
 
-        throw new RuntimeException("Error creating Student: " + entity);
+        entity.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
+        log.info("Student created with ID: {}", entity.getId());
+
+        return entity;
     }
 
     @Override
     public Student read(Student entity) {
+
         if (entity == null || entity.getNif() == null) {
-            throw new IllegalArgumentException("read requires a Student with non-null NIF");
+            throw new IllegalArgumentException("Read requires a Student with non-null NIF");
         }
 
         try {
 
             Student found = jdbcTemplate.queryForObject(SQL_SELECT_BY_DNI, studentRowMapper, entity.getNif());
-            log.info("Student found: {}", found);
+            log.info("Student found by NIF: {}", found);
             return found;
 
         } catch (EmptyResultDataAccessException e) {
-            log.info("No student found with NIF={}", entity.getNif());
+
+            log.warn("Student not found with NIF: {}", entity.getNif());
             return null;
+
         }
     }
 
     @Override
     public Student update(Student entity) {
 
-        if (entity == null || entity.getNif() == null) {
-            throw new IllegalArgumentException("update requires a Student with non-null NIF");
+        if (entity == null || entity.getName() == null || entity.getEmail() == null || entity.getNif() == null) {
+            throw new IllegalArgumentException("Update requires Student with non-null name, email, and NIF");
         }
 
         int updated = jdbcTemplate.update(SQL_UPDATE,
+                entity.getName(),
+                entity.getEmail(),
+                entity.getNif());
 
-                entity.getName(),     // nombre
-                entity.getEmail(),    // email
-                entity.getNif()       // nif
-
-        );
-
-        if (updated == 0) {
-            throw new RuntimeException("Student not found for update: nif=" + entity.getNif());
-        }
-
-        log.info("Student updated: {}", entity);
+        boolean ok = updated > 0;
+        log.info("Student update {} for nif={}. Updated: {}", ok ? "OK" : "NOOP", entity.getNif(), entity);
         return entity;
 
     }
@@ -171,8 +170,10 @@ public class StudentJdbcRepository implements CrudRepository<Student> {
             return found;
 
         } catch (EmptyResultDataAccessException e) {
-            log.info("No student found with ID={}", id);
+
+            log.warn("Student not found with ID: {}", id);
             return null;
+
         }
 
     }

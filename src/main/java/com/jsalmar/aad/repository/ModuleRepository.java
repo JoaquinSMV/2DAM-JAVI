@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Statement;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,34 +17,32 @@ import java.util.Objects;
 public class ModuleRepository implements CrudRepository<Module> {
 
     private static final String SQL_INSERT = """
-                    INSERT INTO modulo (codigo, nombre, horas) VALUES (?, ?, ?)
+                    INSERT INTO "modulo" ("codigo", "nombre", "horas") VALUES (?, ?, ?)
             """;
 
     private static final String SQL_FIND_ALL = """
-                    SELECT id_modulo, codigo, nombre, horas FROM modulo
+                    SELECT "id_modulo", "codigo", "nombre", "horas" FROM "modulo"
             """;
     private static final String SQL_FIND_BY_ID = """
-            SELECT id_modulo, codigo, nombre, horas FROM modulo WHERE id_modulo = ?
+            SELECT "id_modulo", "codigo", "nombre", "horas" FROM "modulo" WHERE "id_modulo" = ?
             """;
-    // Nota: La sentencia UPDATE original tenía WHERE id = ?. Se asume que 'id' es 'id_modulo'.
     private static final String SQL_UPDATE = """
-            UPDATE modulo SET codigo = ?, nombre = ?, horas = ? WHERE id_modulo = ?
+            UPDATE "modulo" SET "codigo" = ?, "nombre" = ?, "horas" = ? WHERE "id_modulo" = ?
             """;
     private static final String SQL_DELETE = """
-            DELETE FROM modulo WHERE id_modulo = ?
+            DELETE FROM "modulo" WHERE "id_modulo" = ?
             """;
+
 
     private final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<Module> moduleRowMapper = (rs, rowNum) -> {
-        Module m = new Module();
-        m.setId(rs.getInt("id_modulo"));
-        m.setCode(rs.getString("codigo"));
-        m.setName(rs.getString("nombre"));
-        m.setHours(rs.getInt("horas"));
-
-        return m;
-
+        Module module = new Module();
+        module.setId(rs.getInt("id_modulo"));
+        module.setCode(rs.getString("codigo"));
+        module.setName(rs.getString("nombre"));
+        module.setHours(rs.getInt("horas"));
+        return module;
     };
 
 
@@ -53,90 +50,69 @@ public class ModuleRepository implements CrudRepository<Module> {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+
     // -----------------------------
-    // Métodos del CrudRepository
+    // Métodos requeridos por CrudRepository
     // -----------------------------
 
     @Override
-    public Module create(Module m) {
+    public Module create(Module entity) {
 
-        if (m == null) throw new IllegalArgumentException("Module cannot be null");
+        if (entity == null || entity.getCode() == null || entity.getName() == null) {
+            throw new IllegalArgumentException("Module must have non-null code and name");
+        }
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
-        int affectedRows = jdbcTemplate.update(connection -> {
+        int inserted = jdbcTemplate.update(connection -> {
 
-                    var ps = connection.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
-                    ps.setString(1, m.getCode());
-                    ps.setString(2, m.getName());
-                    ps.setInt(3, m.getHours());
+            var ps = connection.prepareStatement(SQL_INSERT, new String[]{"id_modulo"});
+            
+            ps.setString(1, entity.getCode());
+            ps.setString(2, entity.getName());
+            ps.setInt(3, entity.getHours());
 
-                    return ps;
+            return ps;
 
-                }
-                , keyHolder);
+        }, keyHolder);
 
-        if (affectedRows > 0) {
-
-            m.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
-            log.info("Module inserted: {}", m);
-
-            return m;
-
+        if (inserted == 0) {
+            throw new IllegalStateException("Insert failed, no rows affected");
         }
 
-        throw new RuntimeException("Error inserting module. No rows affected.");
+        entity.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
+        log.info("Module created with ID: {}", entity.getId());
 
+        return entity;
     }
 
     @Override
     public Module read(Module entity) {
-        if (entity == null || entity.getId() == null) {
-
-            throw new IllegalArgumentException("Module and its ID cannot be null");
-        }
-
-        return findById(entity.getId());
-
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Module update(Module m) {
+    public Module update(Module entity) {
 
-        if (m == null || m.getId() == null) {
-
-            throw new IllegalArgumentException("Module and its ID cannot be null for update");
-
+        if (entity == null || entity.getId() == null) {
+            throw new IllegalArgumentException("Module and its ID cannot be null");
         }
 
-        int affectedRows = jdbcTemplate.update(SQL_UPDATE,
+        int updated = jdbcTemplate.update(SQL_UPDATE,
+                entity.getCode(),
+                entity.getName(),
+                entity.getHours(),
+                entity.getId());
 
-                m.getCode(),
-                m.getName(),
-                m.getHours(),
-                m.getId()
+        boolean ok = updated > 0;
+        log.info("Module update {} for id={}. Updated: {}", ok ? "OK" : "NOOP", entity.getId(), entity);
 
-        );
-
-        if (affectedRows > 0) {
-
-            log.info("Module updated: {}", m);
-
-            return m;
-
-        }
-
-        log.warn("Module not updated, id not found: {}", m.getId());
-
-        return null;
-
+        return entity;
     }
 
     @Override
     public Module findAll(Module entity) {
-
-        return null;
-
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -199,16 +175,7 @@ public class ModuleRepository implements CrudRepository<Module> {
         int deleted = jdbcTemplate.update(SQL_DELETE, id);
 
         boolean ok = deleted > 0;
-
-        if (ok) {
-
-            log.info("Module deleted with id: {}", id);
-
-        } else {
-
-            log.warn("Module not deleted, id not found: {}", id);
-
-        }
+        log.info("Module delete {} for id={}", ok ? "OK" : "NOOP", id);
 
         return ok;
     }

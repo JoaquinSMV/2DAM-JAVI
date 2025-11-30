@@ -1,95 +1,51 @@
-# Proyecto AAD: Gestión Académica (JDBC Puro + PostgreSQL)
+## 1. Objetivo y Resumen de la Migración
 
-## Resumen y Objetivo
+El objetivo de esta actividad fue el migrar el proyecto de JDBC puro a Spring Data JDBC, eliminando la parte manual de
+la conexión y de las transacciones.
 
-Este proyecto implementa una solución completa de **Acceso a Datos** (AAD) utilizando **Java Spring Boot** y **JDBC puro
-** para gestionar estudiantes y módulos en una base de datos **PostgreSQL**.
+El cambio principal fue sustituir las clases nativas de JDBC (Connection, PreparedStatement, ResultSet,
+CallableStatement) por el patrón (JdbcTemplate) y el control declarativo de Spring:
 
-El enfoque principal es demostrar el manejo avanzado y de bajo nivel de la persistencia mediante: JDBC, Transacciones
-explícitas, *Scripts* SQL y Procedimientos Almacenados.
+* **Repositorios:** Ahora dependen de JdbcTemplate para todas las operaciones CRUD.
+* **Conexión:** Se usa el DataSource autoconfigurado por Spring Boot, gestionado desde (application.yml).
+* **Transacciones:** Se eliminaron los ( commit() ) y ( rollback() ) manuales.
 
------
+---
 
-## Entorno de Despliegue (Punto b: PostgreSQL en Docker)
+## 2. Ventajas y Gestión Automática de Recursos
 
-Para asegurar un entorno de base de datos **independiente y reproducible**, utilizamos **Docker Compose** para gestionar
-el servicio de PostgreSQL, cumpliendo así con el requisito **b** (2 puntos).
+### **Ventajas Clave de JdbcTemplate**
 
-### 1\. Instrucciones de Inicio
+| Aspecto                | JDBC Tradicional                                                       | Spring JdbcTemplate                                                                                                                     |
+|:-----------------------|:-----------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|
+| **Recursos (close())** | Gestión manual de Connection, Statement, ResultSet (propenso a fugas). | **Automático.** JdbcTemplate maneja el *pool* de conexiones y el cierre de recursos internamente                                        |
+| **Excepciones**        | Genéricas (SQLException).                                              | **Excepciones Uniformes.** Mapea errores específicos de PostgreSQL a la jerarquía DataAccessException de Spring (más fácil de manejar). |
+| **Mapeo de Datos**     | Manual con while(rs.next()).                                           | **Sencillo y Limpio.** Se usa RowMapper o lambdas para mapear automáticamente el resultado a objetos Java.                              |
 
-Para levantar el contenedor de la base de datos, navega a la raíz del proyecto y ejecuta el siguiente comando:
+---
 
-```bash
-docker-compose up -d
-```
+## 3. Transacciones y Procedimientos
 
-### 2\. Estructura de Docker Compose (Evidencia)
+### **Transacciones Declarativas**
 
-**Archivo `docker-compose.yml`:**
+Se eliminó el manejo explícito de commit/rollback y se adoptó el modelo declarativo de Spring:
 
-```yaml
-version: '3.8'
-services:
-  postgres-db:
-    image: postgres:15-alpine # Imagen oficial de PostgreSQL
-    container_name: postgres_aad
-    ports:
-      - "5432:5432" # Puerto mapeado al host
-    environment:
-      # Las credenciales se leen desde la configuración de Spring Boot
-      POSTGRES_USER: tu_usuario
-      POSTGRES_PASSWORD: tu_password
-      POSTGRES_DB: tu_base_de_datos
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+* La anotación **@Transactional** se aplica en la capa de servicio (ManagementService), en métodos como createS o
+  enrollstudent.
 
-volumes:
-  postgres_data:
-```
 
------
+* Spring AOP envuelve estos métodos:
 
-## Análisis Teórico: Ventajas/Inconvenientes de JDBC (Punto a)
+    * Si el método termina sin errores, se realiza el commit automáticamente.
+    * Si ocurre una excepción (RuntimeException), se realiza el **rollback automático**, asegurando que las
+      operaciones (como la creación de un alumno y un módulo) sean atómicas e indivisibles.
 
-Este análisis justifica la elección del **Conector JDBC puro** para la capa de persistencia (sin ORMs), cumpliendo con
-el requisito **a** (2 puntos).
+### **Procedimientos Almacenados**
 
-| Aspecto                    | **Ventajas de JDBC Puro**                                                                                                                              | **Inconvenientes de JDBC Puro**                                                                                                                    |
-|:---------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Control / Optimización** | **Control Total:** Permite optimizar al máximo las *queries* SQL y acceder a funcionalidades específicas de PostgreSQL (como los `CallableStatement`). | **Código Verboso (Boilerplate):** Requiere mucho código repetitivo para la gestión de recursos JDBC y el mapeo manual de datos.                    |
-| **Rendimiento**            | **Alto Rendimiento:** Ausencia de capa de abstracción de ORM, lo que resulta en una ejecución muy eficiente de las sentencias SQL.                     | **Baja Productividad:** El desarrollo de métodos CRUD para cada entidad es más lento, ya que cada operación debe ser codificada a mano.            |
-| **Características**        | Permite el uso directo de funciones avanzadas de la base de datos, como la invocación de **procedimientos almacenados** (Punto k).                     | **Mayor Riesgo de Errores:** La gestión manual de `ResultSet` y la composición de sentencias son más propensas a errores de programación (*bugs*). |
+Para la invocación de funciones y procedimientos, se reemplazó el CallableStatement manual por **SimpleJdbcCall** en el
+EnrollMentRepository.
 
------
+Esta clase simplifica la configuración de parámetros de entrada y salida, permitiendo la ejecución limpia de lógica de
+negocio en la base de datos (e.g., count_enrollments).
 
-## ️ Características Avanzadas de JDBC
-
-La implementación de los repositorios y el servicio de gestión demuestran el cumplimiento de los siguientes requisitos
-avanzados:
-
-### Transacciones (Punto j)
-
-El método `ManagementService.enrollstudent()` gestiona la matriculación como una **transacción atómica** explícita,
-asegurando la integridad de los datos:
-
-* Se utiliza `postgreSQLDriver.commit()` para confirmar la operación al finalizar con éxito.
-* Se utiliza `postgreSQLDriver.rollback()` en el bloque *catch* para deshacer los cambios si ocurre cualquier fallo.
-
-### Cierre de Recursos (Punto i)
-
-Todos los repositorios (`StudentJdbcRepository`, `ModuleRepository`, etc.) utilizan el patrón **`try-with-resources`**
-para manejar `Connection`, `PreparedStatement` y `ResultSet`. Esto garantiza el cierre automático y seguro de todos los
-recursos JDBC tras su uso, previniendo fugas de memoria y bloqueos de conexión.
-
-### Procedimientos Almacenados (Punto k)
-
-La clase `EnrollMentRepository` invoca la función `count_enrollments` de PostgreSQL utilizando un **`CallableStatement`
-**, demostrando la capacidad de ejecutar lógica de negocio directamente en el servidor de la base de datos.
-
-### Java
-
-```
-Ejemplo de invocación en EnrollMentRepository.java ;
-
-cs.prepareCall("{ ? = call count_enrollments(?) }");
-```
+---
