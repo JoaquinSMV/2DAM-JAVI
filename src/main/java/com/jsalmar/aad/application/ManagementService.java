@@ -22,93 +22,50 @@ public class ManagementService implements CrudRepository<Module> {
     private final ModuleRepository moduleRepository;
     private final EnrollMentRepository enrollMentRepository;
 
-    public ManagementService(StudentJdbcRepository studentRepository, ModuleRepository moduleRepository, EnrollMentRepository enrollMentRepository) {
-
+    public ManagementService(StudentJdbcRepository studentRepository,
+                             ModuleRepository moduleRepository,
+                             EnrollMentRepository enrollMentRepository) {
         this.studentRepository = studentRepository;
         this.moduleRepository = moduleRepository;
         this.enrollMentRepository = enrollMentRepository;
-
     }
 
     //------------------------------------------------
-    // GESTIÓN DE MÓDULOS
+    // GESTIÓN DE MATRICULACIÓN (Punto clave)
     //------------------------------------------------
 
-    @Transactional
-    public Module createM(Module module) {
-
-        if (module == null || module.getCode() == null || module.getName() == null) {
-            throw new IllegalArgumentException("Module and name are required...");
+    @Transactional // <--- Crucial: Si falla la inserción en el repo, se hace rollback
+    public void enrollstudent(int studentId, int moduleId) {
+        // 1. Verificar que el módulo existe
+        Module module = moduleRepository.findById(moduleId);
+        if (module == null) {
+            log.error("Error al matricular: Módulo {} no encontrado", moduleId);
+            throw new RuntimeException("Module not found");
         }
 
-        Module existing = moduleRepository.findAll().stream()
-                .filter(m -> module.getCode().equals(m.getCode()))
-                .findFirst().orElse(null);
+        // 2. Crear objeto de matriculación
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudentId(studentId);
+        enrollment.setEnrollmentDate(LocalDate.now());
 
-        if (existing != null) {
+        // 3. Persistir a través del repositorio de matrículas
+        enrollMentRepository.createEnrollment(enrollment, List.of(module));
 
-            log.error("Module already exists: {}", existing);
-
-            return existing;
-        }
-
-        Module created = moduleRepository.create(module);
-        log.info("Module created: {}", created);
-
-        return created;
+        log.info("Estudiante {} matriculado con éxito en el módulo {}", studentId, moduleId);
     }
 
-    //---------------------------------------
-    //        GESTIÓN DE ESTUDIANTES
-    //---------------------------------------
+    //------------------------------------------------
+    // GESTIÓN DE ALUMNOS (Invocando a StudentJdbcRepository)
+    //------------------------------------------------
 
     @Transactional
     public Student createS(Student student) {
-
-        if (!studentRepository.validate(student)) {
-            throw new IllegalArgumentException("Student and NIF are required...");
-        }
-
-        Student existing = studentRepository.read(student);
-        if (existing != null) {
-            log.error("Student already exist: {}", existing);
-            return existing;
-        }
-
-        Student created = studentRepository.create(student);
-        log.info("Student are ready: {}", created);
-
-        return created;
-
+        log.info("Creando estudiante: {}", student.getName());
+        return studentRepository.create(student);
     }
 
-
-    //---------------------------------------------------------------
-    //          PARA LA MATRICULACIÓN DE LOS ESTUDIANTES
-    //--------------------------------------------------------------
-
-    @Transactional
-    public void enrollstudent(Integer studentId, Integer moduleId) {
-
-        Student student = studentRepository.findById(studentId);
-
-        if (student == null) {
-            throw new RuntimeException("Student not found: " + studentId);
-        }
-
-        Module module = moduleRepository.findById(moduleId);
-
-        if (module == null) {
-            throw new RuntimeException("Module not found: " + moduleId);
-        }
-
-        Enrollment enrollment = new Enrollment();
-        enrollment.setStudentId(studentId);
-
-        enrollment.setEnrollmentDate(LocalDate.now());
-        enrollMentRepository.createEnrollment(enrollment, List.of(module));
-
-        log.info("Student {} successfully enrolled in module {}", studentId, moduleId);
+    public Student findStudentByNif(String nif) {
+        return studentRepository.read(new Student(null, nif, null, null, null, null));
     }
 
     //---------------------------------------------------------------
@@ -118,7 +75,14 @@ public class ManagementService implements CrudRepository<Module> {
     @Override
     @Transactional
     public Module create(Module entity) {
+        log.info("Creando módulo: {}", entity.getName());
         return moduleRepository.create(entity);
+    }
+
+    // Método alias para claridad
+    @Transactional
+    public Module createM(Module module) {
+        return create(module);
     }
 
     @Override
@@ -137,6 +101,7 @@ public class ManagementService implements CrudRepository<Module> {
 
     @Override
     public Module findAll(Module entity) {
+        // Implementación según necesidad de la interfaz
         return null;
     }
 
