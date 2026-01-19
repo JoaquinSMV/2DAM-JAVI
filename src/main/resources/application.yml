@@ -1,12 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/aad_db
+    url: jdbc:postgresql://localhost:5433/postgres
     username: user
     password: pass
-    driver-class-name: org.postgresql.Driver
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:sql/01_schema.sql
-      data-locations: classpath:sql/02_procedures.sql
-      separator: "^^"  # <--- IMPORTANTE: Coincide con el final del archivo SQL
+  jpa:
+    hibernate:
+      ddl-auto: create # Crea las tablas al arrancar
+    show-sql: true # Para ver qué hace Hibernate en la consola
