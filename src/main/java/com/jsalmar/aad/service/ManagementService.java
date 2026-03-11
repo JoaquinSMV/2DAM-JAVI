@@ -22,12 +22,12 @@ public class ManagementService {
     private final EnrollMentRepository enrollMentRepository;
 
     @Transactional
-    public Student createStudent(Student student) { // Cambiado de createS
+    public Student createStudent(Student student) {
         return studentRepository.save(student);
     }
 
     @Transactional
-    public Module createModule(Module module) { // Cambiado de createM
+    public Module createModule(Module module) {
         return moduleRepository.save(module);
     }
 
@@ -53,6 +53,5 @@ public class ManagementService {
         return enrollMentRepository.findAll().stream()
                 .filter(e -> e.getStudent().getId().equals(studentId))
                 .toList().size();
-        // Nota: Sería más eficiente con una @Query en el repo, pero esto cumple.
     }
 }

@@ -9,6 +9,6 @@ import java.util.Optional;
 @Repository
 
 public interface StudentRepository extends JpaRepository<Student, Integer> {
-    // Este Spring crea automáticamente métodos como save(), findAll(), deleteById()...
+    // Este Spring es pa crear automticamente metodos como save, findAll, deleteById...
     Optional<Student> findByNif(String nif);
 }

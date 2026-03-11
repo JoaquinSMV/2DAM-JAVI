@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Mejor Integer para autoincremento
+    private Integer id;
     private String address;
     private String phone;
 
