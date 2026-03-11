@@ -16,5 +16,8 @@ public interface EnrollMentRepository extends JpaRepository<Enrollment, Integer>
 
     @Query("SELECT e FROM Enrollment e WHERE e.student.nif = :nif")
     List<Enrollment> findByStudentNif(@Param("nif") String nif);
-    
+
+    @Query("SELECT e FROM Enrollment e WHERE e.finalGrade >= :minGrade")
+    List<Enrollment> findByMinFinalGrade(@Param("minGrade") Double minGrade);
+
 }

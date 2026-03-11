@@ -12,30 +12,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ManagementService {
-
-    // Ahora inyectamos las interfaces de JPA
     private final StudentRepository studentRepository;
     private final ModuleRepository moduleRepository;
     private final EnrollMentRepository enrollMentRepository;
 
     @Transactional
-    public Student createS(Student student) {
+    public Student createStudent(Student student) { // Cambiado de createS
         return studentRepository.save(student);
     }
 
     @Transactional
-    public Module createM(Module module) {
+    public Module createModule(Module module) { // Cambiado de createM
         return moduleRepository.save(module);
     }
 
     @Transactional
-    public void enrollStudent(Integer studentId, Integer moduleId) {
+    public Enrollment enrollStudentInModule(Integer studentId, Integer moduleId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
         Module module = moduleRepository.findById(moduleId)
@@ -47,10 +44,15 @@ public class ManagementService {
         enrollment.setEnrollmentDate(LocalDate.now());
         enrollment.setFinalGrade(0.0);
 
-        enrollMentRepository.save(enrollment);
+        return enrollMentRepository.save(enrollment); // Ahora devuelve el objeto
     }
 
-    public List<Student> findAllStudents() {
-        return studentRepository.findAll();
+    // NUEVO MÉTODO PARA EL PASO 7:
+    public int countEnrollments(Integer studentId) {
+        // Buscamos cuántas matrículas tiene ese ID de alumno
+        return enrollMentRepository.findAll().stream()
+                .filter(e -> e.getStudent().getId().equals(studentId))
+                .toList().size();
+        // Nota: Sería más eficiente con una @Query en el repo, pero esto cumple.
     }
 }
